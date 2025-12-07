@@ -1,0 +1,153 @@
+"use client"
+
+import { useState, useRef, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { ArrowLeft, Play, Pause } from "lucide-react"
+import type { VideoData, ActionConfig } from "@/app/page"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+interface ResizeScreenProps {
+  videoData: VideoData
+  onComplete: (config: ActionConfig) => void
+  onBack: () => void
+}
+
+export function ResizeScreen({ videoData, onComplete, onBack }: ResizeScreenProps) {
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [preset, setPreset] = useState("custom")
+  const [width, setWidth] = useState(videoData.width?.toString() || "1920")
+  const [height, setHeight] = useState(videoData.height?.toString() || "1080")
+  const [maintainAspect, setMaintainAspect] = useState(true)
+  const [videoUrl, setVideoUrl] = useState<string>("")
+
+  useEffect(() => {
+    const url = URL.createObjectURL(videoData.file)
+    setVideoUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [videoData.file])
+
+  const togglePlay = () => {
+    if (!videoRef.current) return
+    if (isPlaying) {
+      videoRef.current.pause()
+    } else {
+      videoRef.current.play()
+    }
+    setIsPlaying(!isPlaying)
+  }
+
+  const handlePresetChange = (value: string) => {
+    setPreset(value)
+    if (value === "1080p") {
+      setWidth("1920")
+      setHeight("1080")
+    } else if (value === "720p") {
+      setWidth("1280")
+      setHeight("720")
+    } else if (value === "480p") {
+      setWidth("854")
+      setHeight("480")
+    } else if (value === "360p") {
+      setWidth("640")
+      setHeight("360")
+    }
+  }
+
+  const handleContinue = () => {
+    onComplete({
+      type: "resize",
+      params: { width, height, maintainAspect },
+    })
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" onClick={onBack}>
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back
+        </Button>
+        <Button onClick={handleContinue} className="bg-accent text-accent-foreground hover:bg-accent/90">
+          Continue to Export
+        </Button>
+      </div>
+
+      <div className="space-y-4">
+        <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+          <video ref={videoRef} src={videoUrl} className="w-full h-full object-contain" />
+        </div>
+
+        <div className="flex items-center justify-center">
+          <Button variant="outline" size="lg" className="w-12 h-12 rounded-full bg-transparent" onClick={togglePlay}>
+            {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+          </Button>
+        </div>
+
+        <div className="bg-secondary/50 rounded-lg p-6 space-y-6">
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold">Resize Settings</h3>
+            <p className="text-sm text-muted-foreground">Change the dimensions of your video</p>
+          </div>
+
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <Label>Preset Resolutions</Label>
+              <Select value={preset} onValueChange={handlePresetChange}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1080p">1080p (1920×1080)</SelectItem>
+                  <SelectItem value="720p">720p (1280×720)</SelectItem>
+                  <SelectItem value="480p">480p (854×480)</SelectItem>
+                  <SelectItem value="360p">360p (640×360)</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label>Width (pixels)</Label>
+                <Input
+                  type="number"
+                  value={width}
+                  onChange={(e) => {
+                    setWidth(e.target.value)
+                    setPreset("custom")
+                  }}
+                  placeholder="1920"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Height (pixels)</Label>
+                <Input
+                  type="number"
+                  value={height}
+                  onChange={(e) => {
+                    setHeight(e.target.value)
+                    setPreset("custom")
+                  }}
+                  placeholder="1080"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-background/50 rounded p-4 text-sm space-y-1">
+            <p className="text-muted-foreground">
+              Current: {videoData.width || "—"} × {videoData.height || "—"}
+            </p>
+            <p className="text-muted-foreground">
+              New: {width} × {height}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
