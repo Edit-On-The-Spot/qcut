@@ -3,19 +3,20 @@
 import type React from "react"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Upload } from "lucide-react"
-import type { VideoData, ActionConfig } from "@/app/page"
+import { useVideo } from "@/lib/video-context"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 
-interface MergeScreenProps {
-  videoData: VideoData
-  onComplete: (config: ActionConfig) => void
-  onBack: () => void
-}
-
-export function MergeScreen({ videoData, onComplete, onBack }: MergeScreenProps) {
+/**
+ * Merge screen for combining audio with video.
+ * Allows uploading a separate audio file to merge with the video.
+ */
+export function MergeScreen() {
+  const router = useRouter()
+  const { videoData, setActionConfig } = useVideo()
   const [audioFile, setAudioFile] = useState<File | null>(null)
 
   const handleAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -26,13 +27,20 @@ export function MergeScreen({ videoData, onComplete, onBack }: MergeScreenProps)
   }
 
   const handleContinue = () => {
-    onComplete({
+    if (!videoData) return
+    setActionConfig({
       type: "merge",
       params: {
         videoFile: videoData.file.name,
         audioFile: audioFile?.name,
       },
     })
+    router.push("/export")
+  }
+
+  if (!videoData) {
+    router.push("/")
+    return null
   }
 
   const formatFileSize = (bytes: number) => {
@@ -42,7 +50,7 @@ export function MergeScreen({ videoData, onComplete, onBack }: MergeScreenProps)
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={onBack}>
+        <Button variant="ghost" onClick={() => router.push("/actions")}>
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>

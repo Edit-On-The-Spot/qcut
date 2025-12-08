@@ -3,19 +3,20 @@
 import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Play, Pause } from "lucide-react"
-import type { VideoData, ActionConfig } from "@/app/page"
+import { useVideo } from "@/lib/video-context"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 
-interface GifScreenProps {
-  videoData: VideoData
-  onComplete: (config: ActionConfig) => void
-  onBack: () => void
-}
-
-export function GifScreen({ videoData, onComplete, onBack }: GifScreenProps) {
+/**
+ * GIF screen for converting video segment to animated GIF.
+ * Allows selecting time range and adjusting FPS/scale.
+ */
+export function GifScreen() {
+  const router = useRouter()
+  const { videoData, setActionConfig } = useVideo()
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
@@ -27,10 +28,11 @@ export function GifScreen({ videoData, onComplete, onBack }: GifScreenProps) {
   const [videoUrl, setVideoUrl] = useState<string>("")
 
   useEffect(() => {
+    if (!videoData) return
     const url = URL.createObjectURL(videoData.file)
     setVideoUrl(url)
     return () => URL.revokeObjectURL(url)
-  }, [videoData.file])
+  }, [videoData])
 
   useEffect(() => {
     const video = videoRef.current
@@ -90,7 +92,7 @@ export function GifScreen({ videoData, onComplete, onBack }: GifScreenProps) {
   }
 
   const handleContinue = () => {
-    onComplete({
+    setActionConfig({
       type: "gif",
       params: {
         start: startTime !== null ? startTime.toFixed(2) : "0",
@@ -99,6 +101,12 @@ export function GifScreen({ videoData, onComplete, onBack }: GifScreenProps) {
         scale: scale[0],
       },
     })
+    router.push("/export")
+  }
+
+  if (!videoData) {
+    router.push("/")
+    return null
   }
 
   const formatTime = (seconds: number) => {
@@ -120,7 +128,7 @@ export function GifScreen({ videoData, onComplete, onBack }: GifScreenProps) {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={onBack}>
+        <Button variant="ghost" onClick={() => router.push("/actions")}>
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>

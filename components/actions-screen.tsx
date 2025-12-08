@@ -1,8 +1,7 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-
 import type React from "react"
+import { useRouter } from "next/navigation"
 import {
   Repeat,
   Minimize2,
@@ -15,14 +14,9 @@ import {
   Layers,
   ArrowLeft,
 } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import type { ActionType, VideoData } from "@/app/page"
-
-interface ActionsScreenProps {
-  videoData: VideoData
-  onActionSelect: (type: ActionType) => void
-  onBack: () => void
-}
+import { useVideo, type ActionType } from "@/lib/video-context"
 
 const actions: Array<{
   type: ActionType
@@ -86,15 +80,27 @@ const actions: Array<{
   },
 ]
 
-export function ActionsScreen({ videoData, onActionSelect, onBack }: ActionsScreenProps) {
+/**
+ * Actions screen for selecting video operations.
+ * Displays available operations and navigates to the selected operation page.
+ */
+export function ActionsScreen() {
+  const router = useRouter()
+  const { videoData } = useVideo()
+
   const handleActionClick = (type: ActionType) => {
-    onActionSelect(type)
+    router.push(`/${type}`)
+  }
+
+  if (!videoData) {
+    router.push("/")
+    return null
   }
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={onBack}>
+        <Button variant="ghost" onClick={() => router.push("/")}>
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>

@@ -3,16 +3,19 @@
 import type React from "react"
 
 import { useCallback, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Upload, FileVideo } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import type { VideoData } from "@/app/page"
+import { useVideo, type VideoData } from "@/lib/video-context"
 
-interface ImportScreenProps {
-  onImport: (data: VideoData) => void
-}
-
-export function ImportScreen({ onImport }: ImportScreenProps) {
+/**
+ * Import screen for uploading video files.
+ * Extracts video metadata and stores in context before navigating to actions.
+ */
+export function ImportScreen() {
+  const router = useRouter()
+  const { setVideoData } = useVideo()
   const [file, setFile] = useState<File | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [videoInfo, setVideoInfo] = useState<{
@@ -62,13 +65,14 @@ export function ImportScreen({ onImport }: ImportScreenProps) {
 
   const handleContinue = () => {
     if (file) {
-      onImport({
+      setVideoData({
         file,
         duration: videoInfo?.duration,
         width: videoInfo?.width,
         height: videoInfo?.height,
         format: file.name.split(".").pop()?.toUpperCase(),
       })
+      router.push("/actions")
     }
   }
 

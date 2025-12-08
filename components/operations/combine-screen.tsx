@@ -3,20 +3,21 @@
 import type React from "react"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Plus, X, GripVertical } from "lucide-react"
-import type { VideoData, ActionConfig } from "@/app/page"
+import { useVideo } from "@/lib/video-context"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 
-interface CombineScreenProps {
-  videoData: VideoData
-  onComplete: (config: ActionConfig) => void
-  onBack: () => void
-}
-
-export function CombineScreen({ videoData, onComplete, onBack }: CombineScreenProps) {
-  const [clips, setClips] = useState<File[]>([videoData.file])
+/**
+ * Combine screen for concatenating multiple video clips.
+ * Allows adding multiple video files to merge into one.
+ */
+export function CombineScreen() {
+  const router = useRouter()
+  const { videoData, setActionConfig } = useVideo()
+  const [clips, setClips] = useState<File[]>(videoData ? [videoData.file] : [])
 
   const handleAddClips = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
@@ -28,13 +29,19 @@ export function CombineScreen({ videoData, onComplete, onBack }: CombineScreenPr
   }
 
   const handleContinue = () => {
-    onComplete({
+    setActionConfig({
       type: "combine",
       params: {
         clips: clips.map((c) => c.name),
         count: clips.length,
       },
     })
+    router.push("/export")
+  }
+
+  if (!videoData) {
+    router.push("/")
+    return null
   }
 
   const formatFileSize = (bytes: number) => {
@@ -44,7 +51,7 @@ export function CombineScreen({ videoData, onComplete, onBack }: CombineScreenPr
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={onBack}>
+        <Button variant="ghost" onClick={() => router.push("/actions")}>
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>

@@ -3,17 +3,18 @@
 import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Play, Pause, Volume2, VolumeX, Scissors, X } from "lucide-react"
-import type { VideoData, ActionConfig } from "@/app/page"
+import { useVideo } from "@/lib/video-context"
 
-interface TrimScreenProps {
-  videoData: VideoData
-  onComplete: (config: ActionConfig) => void
-  onBack: () => void
-}
-
-export function TrimScreen({ videoData, onComplete, onBack }: TrimScreenProps) {
+/**
+ * Trim screen for cutting video segments.
+ * Allows marking start/end points with visual timeline preview.
+ */
+export function TrimScreen() {
+  const router = useRouter()
+  const { videoData, setActionConfig } = useVideo()
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
@@ -25,10 +26,11 @@ export function TrimScreen({ videoData, onComplete, onBack }: TrimScreenProps) {
   const [videoUrl, setVideoUrl] = useState<string>("")
 
   useEffect(() => {
+    if (!videoData) return
     const url = URL.createObjectURL(videoData.file)
     setVideoUrl(url)
     return () => URL.revokeObjectURL(url)
-  }, [videoData.file])
+  }, [videoData])
 
   useEffect(() => {
     const video = videoRef.current
@@ -124,13 +126,19 @@ export function TrimScreen({ videoData, onComplete, onBack }: TrimScreenProps) {
   }
 
   const handleContinue = () => {
-    onComplete({
+    setActionConfig({
       type: "trim",
       params: {
         start: startTime !== null ? startTime.toFixed(2) : "0",
         end: endTime !== null ? endTime.toFixed(2) : duration.toFixed(2),
       },
     })
+    router.push("/export")
+  }
+
+  if (!videoData) {
+    router.push("/")
+    return null
   }
 
   const formatTime = (seconds: number) => {
@@ -152,7 +160,7 @@ export function TrimScreen({ videoData, onComplete, onBack }: TrimScreenProps) {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={onBack}>
+        <Button variant="ghost" onClick={() => router.push("/actions")}>
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>

@@ -1,33 +1,36 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Play, Pause } from "lucide-react"
-import type { VideoData, ActionConfig } from "@/app/page"
+import { useVideo } from "@/lib/video-context"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-interface ResizeScreenProps {
-  videoData: VideoData
-  onComplete: (config: ActionConfig) => void
-  onBack: () => void
-}
-
-export function ResizeScreen({ videoData, onComplete, onBack }: ResizeScreenProps) {
+/**
+ * Resize screen for changing video dimensions.
+ * Allows selecting preset resolutions or custom dimensions.
+ */
+export function ResizeScreen() {
+  const router = useRouter()
+  const { videoData, setActionConfig } = useVideo()
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [preset, setPreset] = useState("custom")
-  const [width, setWidth] = useState(videoData.width?.toString() || "1920")
-  const [height, setHeight] = useState(videoData.height?.toString() || "1080")
-  const [maintainAspect, setMaintainAspect] = useState(true)
+  const [width, setWidth] = useState(videoData?.width?.toString() || "1920")
+  const [height, setHeight] = useState(videoData?.height?.toString() || "1080")
   const [videoUrl, setVideoUrl] = useState<string>("")
 
   useEffect(() => {
+    if (!videoData) return
     const url = URL.createObjectURL(videoData.file)
     setVideoUrl(url)
+    setWidth(videoData.width?.toString() || "1920")
+    setHeight(videoData.height?.toString() || "1080")
     return () => URL.revokeObjectURL(url)
-  }, [videoData.file])
+  }, [videoData])
 
   const togglePlay = () => {
     if (!videoRef.current) return
@@ -57,16 +60,22 @@ export function ResizeScreen({ videoData, onComplete, onBack }: ResizeScreenProp
   }
 
   const handleContinue = () => {
-    onComplete({
+    setActionConfig({
       type: "resize",
-      params: { width, height, maintainAspect },
+      params: { width, height },
     })
+    router.push("/export")
+  }
+
+  if (!videoData) {
+    router.push("/")
+    return null
   }
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={onBack}>
+        <Button variant="ghost" onClick={() => router.push("/actions")}>
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>
