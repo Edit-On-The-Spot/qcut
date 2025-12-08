@@ -6,7 +6,8 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Upload } from "lucide-react"
-import { useVideo } from "@/lib/video-context"
+import { useVideo, type ActionConfig } from "@/lib/video-context"
+import { ProcessingButton } from "@/components/processing-button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 
@@ -26,17 +27,13 @@ export function MergeScreen() {
     }
   }
 
-  const handleContinue = () => {
-    if (!videoData) return
-    setActionConfig({
-      type: "merge",
-      params: {
-        videoFile: videoData.file.name,
-        audioFile: audioFile?.name,
-      },
-    })
-    router.push("/export")
-  }
+  const getActionConfig = (): ActionConfig => ({
+    type: "merge",
+    params: {
+      videoFile: videoData?.file.name,
+      audioFile: audioFile?.name,
+    },
+  })
 
   if (!videoData) {
     router.push("/")
@@ -49,19 +46,10 @@ export function MergeScreen() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={() => router.push("/actions")}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
-        </Button>
-        <Button
-          onClick={handleContinue}
-          disabled={!audioFile}
-          className="bg-accent text-accent-foreground hover:bg-accent/90"
-        >
-          Continue to Export
-        </Button>
-      </div>
+      <Button variant="ghost" onClick={() => router.push("/actions")}>
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        Back
+      </Button>
 
       <div className="space-y-6">
         <div className="space-y-2">
@@ -132,6 +120,8 @@ export function MergeScreen() {
             will be trimmed or extended accordingly.
           </p>
         </div>
+
+        {audioFile && <ProcessingButton config={getActionConfig()} onReset={() => setAudioFile(null)} />}
       </div>
     </div>
   )

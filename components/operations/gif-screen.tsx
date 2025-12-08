@@ -6,7 +6,8 @@ import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Play, Pause } from "lucide-react"
-import { useVideo } from "@/lib/video-context"
+import { useVideo, type ActionConfig } from "@/lib/video-context"
+import { ProcessingButton } from "@/components/processing-button"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 
@@ -91,18 +92,15 @@ export function GifScreen() {
     setEndTime(null)
   }
 
-  const handleContinue = () => {
-    setActionConfig({
-      type: "gif",
-      params: {
-        start: startTime !== null ? startTime.toFixed(2) : "0",
-        end: endTime !== null ? endTime.toFixed(2) : Math.min(duration, 3).toFixed(2),
-        fps: fps[0],
-        scale: scale[0],
-      },
-    })
-    router.push("/export")
-  }
+  const getActionConfig = (): ActionConfig => ({
+    type: "gif",
+    params: {
+      start: startTime !== null ? startTime.toFixed(2) : "0",
+      end: endTime !== null ? endTime.toFixed(2) : Math.min(duration, 3).toFixed(2),
+      fps: fps[0],
+      scale: scale[0],
+    },
+  })
 
   if (!videoData) {
     router.push("/")
@@ -132,14 +130,9 @@ export function GifScreen() {
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleClearSelection} disabled={startTime === null && endTime === null}>
-            Clear Selection
-          </Button>
-          <Button onClick={handleContinue} className="bg-accent text-accent-foreground hover:bg-accent/90">
-            Continue to Export
-          </Button>
-        </div>
+        <Button variant="outline" onClick={handleClearSelection} disabled={startTime === null && endTime === null}>
+          Clear Selection
+        </Button>
       </div>
 
       <div className="space-y-4">
@@ -226,6 +219,8 @@ export function GifScreen() {
               )}
             </div>
           )}
+
+          <ProcessingButton config={getActionConfig()} onReset={handleClearSelection} />
         </div>
       </div>
     </div>

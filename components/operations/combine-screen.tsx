@@ -6,7 +6,8 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Plus, X, GripVertical } from "lucide-react"
-import { useVideo } from "@/lib/video-context"
+import { useVideo, type ActionConfig } from "@/lib/video-context"
+import { ProcessingButton } from "@/components/processing-button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 
@@ -28,16 +29,13 @@ export function CombineScreen() {
     setClips(clips.filter((_, i) => i !== index))
   }
 
-  const handleContinue = () => {
-    setActionConfig({
-      type: "combine",
-      params: {
-        clips: clips.map((c) => c.name),
-        count: clips.length,
-      },
-    })
-    router.push("/export")
-  }
+  const getActionConfig = (): ActionConfig => ({
+    type: "combine",
+    params: {
+      clips: clips.map((c) => c.name),
+      count: clips.length,
+    },
+  })
 
   if (!videoData) {
     router.push("/")
@@ -50,19 +48,10 @@ export function CombineScreen() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={() => router.push("/actions")}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
-        </Button>
-        <Button
-          onClick={handleContinue}
-          disabled={clips.length < 2}
-          className="bg-accent text-accent-foreground hover:bg-accent/90"
-        >
-          Continue to Export
-        </Button>
-      </div>
+      <Button variant="ghost" onClick={() => router.push("/actions")}>
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        Back
+      </Button>
 
       <div className="space-y-6">
         <div className="space-y-2">
@@ -129,6 +118,8 @@ export function CombineScreen() {
             Clips will be combined in the order shown above. Drag to reorder (coming soon).
           </p>
         </div>
+
+        {clips.length >= 2 && <ProcessingButton config={getActionConfig()} />}
       </div>
     </div>
   )

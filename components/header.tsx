@@ -12,7 +12,6 @@ export function Header() {
 
   const isImport = pathname === "/"
   const isActions = pathname === "/actions" || pathname.match(/^\/(trim|convert|compress|extract-audio|merge|gif|resize|frame-extract|combine)$/)
-  const isExport = pathname === "/export"
 
   return (
     <header className="border-b border-border">
@@ -36,14 +35,7 @@ export function Header() {
               href="/actions"
               className={`px-3 py-1 rounded transition-colors ${isActions ? "bg-accent text-accent-foreground" : "hover:bg-secondary"}`}
             >
-              2. Actions
-            </Link>
-            <div className="w-6 h-px bg-border" />
-            <Link
-              href="/export"
-              className={`px-3 py-1 rounded transition-colors ${isExport ? "bg-accent text-accent-foreground" : "hover:bg-secondary"}`}
-            >
-              3. Export
+              2. Edit
             </Link>
           </nav>
         </div>

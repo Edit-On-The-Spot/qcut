@@ -6,7 +6,8 @@ import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Play, Pause, Volume2, VolumeX, Scissors, X } from "lucide-react"
-import { useVideo } from "@/lib/video-context"
+import { useVideo, type ActionConfig } from "@/lib/video-context"
+import { ProcessingButton } from "@/components/processing-button"
 
 /**
  * Trim screen for cutting video segments.
@@ -125,16 +126,13 @@ export function TrimScreen() {
     setEndTime(null)
   }
 
-  const handleContinue = () => {
-    setActionConfig({
-      type: "trim",
-      params: {
-        start: startTime !== null ? startTime.toFixed(2) : "0",
-        end: endTime !== null ? endTime.toFixed(2) : duration.toFixed(2),
-      },
-    })
-    router.push("/export")
-  }
+  const getActionConfig = (): ActionConfig => ({
+    type: "trim",
+    params: {
+      start: startTime !== null ? startTime.toFixed(2) : "0",
+      end: endTime !== null ? endTime.toFixed(2) : duration.toFixed(2),
+    },
+  })
 
   if (!videoData) {
     router.push("/")
@@ -164,18 +162,9 @@ export function TrimScreen() {
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleClearSelection} disabled={startTime === null && endTime === null}>
-            Clear Selection
-          </Button>
-          <Button
-            onClick={handleContinue}
-            disabled={startTime === null || endTime === null}
-            className="bg-accent text-accent-foreground hover:bg-accent/90"
-          >
-            Continue to Export
-          </Button>
-        </div>
+        <Button variant="outline" onClick={handleClearSelection} disabled={startTime === null && endTime === null}>
+          Clear Selection
+        </Button>
       </div>
 
       <div className="space-y-4">
@@ -272,6 +261,13 @@ export function TrimScreen() {
               </div>
             </div>
           </div>
+        )}
+
+        {startTime !== null && endTime !== null && (
+          <ProcessingButton
+            config={getActionConfig()}
+            onReset={handleClearSelection}
+          />
         )}
       </div>
     </div>

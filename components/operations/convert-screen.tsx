@@ -4,7 +4,8 @@ import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Play, Pause } from "lucide-react"
-import { useVideo } from "@/lib/video-context"
+import { useVideo, type ActionConfig } from "@/lib/video-context"
+import { ProcessingButton } from "@/components/processing-button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
@@ -38,13 +39,10 @@ export function ConvertScreen() {
     setIsPlaying(!isPlaying)
   }
 
-  const handleContinue = () => {
-    setActionConfig({
-      type: "convert",
-      params: { format, codec },
-    })
-    router.push("/export")
-  }
+  const getActionConfig = (): ActionConfig => ({
+    type: "convert",
+    params: { format, codec },
+  })
 
   if (!videoData) {
     router.push("/")
@@ -53,15 +51,10 @@ export function ConvertScreen() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={() => router.push("/actions")}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
-        </Button>
-        <Button onClick={handleContinue} className="bg-accent text-accent-foreground hover:bg-accent/90">
-          Continue to Export
-        </Button>
-      </div>
+      <Button variant="ghost" onClick={() => router.push("/actions")}>
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        Back
+      </Button>
 
       <div className="space-y-4">
         <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
@@ -117,6 +110,8 @@ export function ConvertScreen() {
             <p className="text-muted-foreground">Current format: {videoData.format || "Unknown"}</p>
             <p className="text-muted-foreground">Current codec: {videoData.codec || "Unknown"}</p>
           </div>
+
+          <ProcessingButton config={getActionConfig()} />
         </div>
       </div>
     </div>

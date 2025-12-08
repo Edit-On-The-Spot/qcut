@@ -6,7 +6,8 @@ import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Play, Pause } from "lucide-react"
-import { useVideo } from "@/lib/video-context"
+import { useVideo, type ActionConfig } from "@/lib/video-context"
+import { ProcessingButton } from "@/components/processing-button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
@@ -75,29 +76,14 @@ export function FrameExtractScreen() {
     setCurrentTime(time)
   }
 
-  const extractCurrentFrame = () => {
-    setActionConfig({
-      type: "frame-extract",
-      params: {
-        mode: "current",
-        timestamp: currentTime.toFixed(2),
-        format,
-      },
-    })
-    router.push("/export")
-  }
-
-  const handleContinue = () => {
-    setActionConfig({
-      type: "frame-extract",
-      params: {
-        mode: extractMode,
-        interval: extractMode === "interval" ? interval : undefined,
-        format,
-      },
-    })
-    router.push("/export")
-  }
+  const getActionConfig = (): ActionConfig => ({
+    type: "frame-extract",
+    params: {
+      mode: extractMode,
+      interval: extractMode === "interval" ? interval : undefined,
+      format,
+    },
+  })
 
   if (!videoData) {
     router.push("/")
@@ -119,27 +105,19 @@ export function FrameExtractScreen() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={() => router.push("/actions")}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
-        </Button>
-        <Button onClick={handleContinue} className="bg-accent text-accent-foreground hover:bg-accent/90">
-          Continue to Export
-        </Button>
-      </div>
+      <Button variant="ghost" onClick={() => router.push("/actions")}>
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        Back
+      </Button>
 
       <div className="space-y-4">
         <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
           <video ref={videoRef} src={videoUrl} className="w-full h-full object-contain" />
         </div>
 
-        <div className="flex items-center justify-center gap-4">
+        <div className="flex items-center justify-center">
           <Button variant="outline" size="lg" className="w-12 h-12 rounded-full bg-transparent" onClick={togglePlay}>
             {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
-          </Button>
-          <Button variant="outline" size="lg" onClick={extractCurrentFrame}>
-            Extract Current Frame
           </Button>
         </div>
 
@@ -214,6 +192,8 @@ export function FrameExtractScreen() {
             <p className="text-muted-foreground">Current timestamp: {formatTime(currentTime)}</p>
             <p className="text-muted-foreground">Estimated frames: {estimatedFrames()}</p>
           </div>
+
+          <ProcessingButton config={getActionConfig()} />
         </div>
       </div>
     </div>
