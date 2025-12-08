@@ -21,7 +21,7 @@ export function Header() {
             <div className="flex items-center justify-center w-8 h-8 bg-accent rounded">
               <span className="text-accent-foreground font-bold text-sm">Q</span>
             </div>
-            <h1 className="text-xl font-semibold">qcut.ai</h1>
+            <h1 className="text-xl font-semibold">qcut.app</h1>
           </Link>
           <nav className="flex items-center gap-2 text-sm text-muted-foreground">
             <Link
