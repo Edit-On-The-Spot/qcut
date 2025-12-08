@@ -13,6 +13,7 @@ import {
   Grid3x3,
   Layers,
   ArrowLeft,
+  FileVideo,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -97,6 +98,17 @@ export function ActionsScreen() {
     return null
   }
 
+  const formatDuration = (seconds?: number) => {
+    if (!seconds) return "N/A"
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins}:${secs.toString().padStart(2, "0")}`
+  }
+
+  const formatFileSize = (bytes: number) => {
+    return (bytes / (1024 * 1024)).toFixed(2) + " MB"
+  }
+
   return (
     <div className="max-w-5xl mx-auto space-y-8">
       <div className="flex items-center justify-between">
@@ -105,6 +117,23 @@ export function ActionsScreen() {
           Back
         </Button>
       </div>
+
+      <Card className="p-6">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-lg bg-accent/20 flex items-center justify-center">
+            <FileVideo className="w-6 h-6 text-accent" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-medium truncate">{videoData.file.name}</p>
+            <div className="flex gap-4 text-sm text-muted-foreground">
+              <span>{formatDuration(videoData.duration)}</span>
+              <span>{videoData.width && videoData.height ? `${videoData.width}×${videoData.height}` : "N/A"}</span>
+              <span>{formatFileSize(videoData.file.size)}</span>
+              <span>{videoData.format}</span>
+            </div>
+          </div>
+        </div>
+      </Card>
 
       <div className="text-center space-y-2">
         <h2 className="text-3xl font-bold">Choose Action</h2>

@@ -52,28 +52,29 @@ export function ImportScreen() {
     const video = document.createElement("video")
     video.preload = "metadata"
     video.onloadedmetadata = () => {
-      setVideoInfo({
+      const info = {
         duration: video.duration,
         width: video.videoWidth,
         height: video.videoHeight,
         size: `${sizeInMB} MB`,
-      })
+      }
+      setVideoInfo(info)
       URL.revokeObjectURL(video.src)
+      // Navigate immediately after metadata is loaded
+      navigateToActions(file, info)
     }
     video.src = URL.createObjectURL(file)
   }
 
-  const handleContinue = () => {
-    if (file) {
-      setVideoData({
-        file,
-        duration: videoInfo?.duration,
-        width: videoInfo?.width,
-        height: videoInfo?.height,
-        format: file.name.split(".").pop()?.toUpperCase(),
-      })
-      router.push("/actions")
-    }
+  const navigateToActions = (file: File, info: typeof videoInfo) => {
+    setVideoData({
+      file,
+      duration: info?.duration,
+      width: info?.width,
+      height: info?.height,
+      format: file.name.split(".").pop()?.toUpperCase(),
+    })
+    router.push("/actions")
   }
 
   return (
@@ -113,53 +114,7 @@ export function ImportScreen() {
                 </label>
               </Button>
             </>
-          ) : (
-            <div className="space-y-6">
-              <div className="flex justify-center">
-                <div className="w-20 h-20 rounded-full bg-accent/20 flex items-center justify-center">
-                  <FileVideo className="w-10 h-10 text-accent" />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <p className="text-lg font-medium">{file.name}</p>
-                <p className="text-sm text-muted-foreground">Video file selected</p>
-              </div>
-
-              {videoInfo && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 bg-secondary rounded-lg">
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Duration</p>
-                    <p className="text-sm font-mono">
-                      {videoInfo.duration ? `${Math.floor(videoInfo.duration)}s` : "N/A"}
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Resolution</p>
-                    <p className="text-sm font-mono">
-                      {videoInfo.width && videoInfo.height ? `${videoInfo.width}×${videoInfo.height}` : "N/A"}
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Size</p>
-                    <p className="text-sm font-mono">{videoInfo.size}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Format</p>
-                    <p className="text-sm font-mono">{file.name.split(".").pop()?.toUpperCase()}</p>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex gap-3 justify-center">
-                <Button variant="outline" onClick={() => setFile(null)}>
-                  Change File
-                </Button>
-                <Button onClick={handleContinue} className="bg-accent text-accent-foreground hover:bg-accent/90">
-                  Continue →
-                </Button>
-              </div>
-            </div>
-          )}
+          ) : null}
         </div>
       </Card>
     </div>
