@@ -14,17 +14,13 @@ import { useVideo, useFFmpeg, type ActionConfig, type VideoData } from "@/lib/vi
 export function ExportScreen() {
   const router = useRouter()
   const { videoData, actionConfig, reset } = useVideo()
-  const { ffmpeg, isLoaded, message: ffmpegMessage, load: loadFFmpeg } = useFFmpeg()
+  const { ffmpeg, isLoaded, message: ffmpegMessage } = useFFmpeg()
   const [command, setCommand] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
   const [isComplete, setIsComplete] = useState(false)
   const [progress, setProgress] = useState(0)
   const [outputUrl, setOutputUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    loadFFmpeg()
-  }, [loadFFmpeg])
 
   useEffect(() => {
     if (videoData && actionConfig) {
