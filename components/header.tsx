@@ -1,43 +1,34 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 /**
  * Navigation header component.
- * Displays app logo and step indicators based on current route.
+ * Displays app logo with backdrop blur effect and theme toggle.
  */
 export function Header() {
   const pathname = usePathname()
-
-  const isImport = pathname === "/"
-  const isActions = pathname === "/actions" || pathname.match(/^\/(trim|convert|compress|extract-audio|merge|gif|resize|frame-extract|combine)$/)
+  const isLanding = pathname === "/"
 
   return (
-    <header className="border-b border-border">
-      <div className="container mx-auto px-6 py-4">
-        <div className="flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-8 h-8 bg-accent rounded">
-              <span className="text-accent-foreground font-bold text-sm">Q</span>
-            </div>
-            <h1 className="text-xl font-semibold">qcut.app</h1>
-          </Link>
-          <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Link
-              href="/"
-              className={`px-3 py-1 rounded transition-colors ${isImport ? "bg-accent text-accent-foreground" : "hover:bg-secondary"}`}
-            >
-              1. Import
+    <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b">
+      <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-2">
+          <Image src="/qcut-logo.png" alt="Qcut" width={84} height={24} className="h-7 w-auto" />
+        </Link>
+
+        {/* Right side */}
+        <div className="flex items-center gap-4">
+          <ThemeToggle />
+          {!isLanding && (
+            <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              Home
             </Link>
-            <div className="w-6 h-px bg-border" />
-            <Link
-              href="/actions"
-              className={`px-3 py-1 rounded transition-colors ${isActions ? "bg-accent text-accent-foreground" : "hover:bg-secondary"}`}
-            >
-              2. Edit
-            </Link>
-          </nav>
+          )}
         </div>
       </div>
     </header>

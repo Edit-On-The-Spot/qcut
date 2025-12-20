@@ -1,5 +1,10 @@
 import { CompressScreen } from "@/components/operations/compress-screen"
+import { OperationLayout } from "@/components/operation-layout"
 
 export default function CompressPage() {
-  return <CompressScreen />
+  return (
+    <OperationLayout>
+      <CompressScreen />
+    </OperationLayout>
+  )
 }

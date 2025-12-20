@@ -1,5 +1,10 @@
 import { ConvertScreen } from "@/components/operations/convert-screen"
+import { OperationLayout } from "@/components/operation-layout"
 
 export default function ConvertPage() {
-  return <ConvertScreen />
+  return (
+    <OperationLayout>
+      <ConvertScreen />
+    </OperationLayout>
+  )
 }

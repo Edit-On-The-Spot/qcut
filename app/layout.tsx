@@ -40,13 +40,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans antialiased`}>
-        <div className="min-h-screen bg-background">
-          <FFmpegLoader />
-          <Header />
-          <main className="container mx-auto px-6 py-12">
-            {children}
-          </main>
-        </div>
+        <FFmpegLoader />
+        <Header />
+        {children}
         <Analytics />
       </body>
     </html>
