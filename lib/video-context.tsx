@@ -43,6 +43,9 @@ export const ffmpegLoadedAtom = atom<boolean>(false)
 /** Atom tracking FFmpeg loading progress message */
 export const ffmpegMessageAtom = atom<string>("")
 
+/** Atom caching generated thumbnails by timestamp key (videoName:timestampMs -> dataUrl) */
+export const thumbnailCacheAtom = atom<Map<string, string>>(new Map())
+
 /**
  * Hook to access video editing state.
  * Uses Jotai atoms for state management across routes.

@@ -5,9 +5,12 @@ import type React from "react"
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Play, Pause, Volume2, VolumeX, Scissors, X } from "lucide-react"
+import { ArrowLeft, Play, Pause, Volume2, VolumeX, Scissors, X, Loader2 } from "lucide-react"
 import { useVideo, type ActionConfig } from "@/lib/video-context"
 import { ProcessingButton } from "@/components/processing-button"
+import { useVideoFramerate } from "@/lib/use-video-framerate"
+import { useFFmpegThumbnails } from "@/lib/use-ffmpeg-thumbnails"
+import { useThumbnailZoom } from "@/lib/use-thumbnail-zoom"
 
 /**
  * Trim screen for cutting video segments.
@@ -17,14 +20,36 @@ export function TrimScreen() {
   const router = useRouter()
   const { videoData, setActionConfig } = useVideo()
   const videoRef = useRef<HTMLVideoElement>(null)
+  const thumbnailContainerRef = useRef<HTMLDivElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [startTime, setStartTime] = useState<number | null>(null)
   const [endTime, setEndTime] = useState<number | null>(null)
-  const [thumbnails, setThumbnails] = useState<string[]>([])
   const [videoUrl, setVideoUrl] = useState<string>("")
+  const [containerWidthPx, setContainerWidthPx] = useState(0)
+
+  // Video framerate detection for zoom limits
+  const framerateFps = useVideoFramerate(videoRef)
+
+  // FFmpeg thumbnail generation with caching
+  const { requestThumbnails, getThumbnails, isReady } = useFFmpegThumbnails(videoData)
+
+  // Thumbnail zoom state and calculations
+  const {
+    zoomLevel,
+    visibleStartSec,
+    timestamps,
+    handleWheel
+  } = useThumbnailZoom({
+    durationSec: duration,
+    framerateFps,
+    containerWidthPx
+  })
+
+  // Get cached thumbnails for current timestamps
+  const thumbnailMap = getThumbnails(timestamps)
 
   useEffect(() => {
     if (!videoData) return
@@ -33,13 +58,42 @@ export function TrimScreen() {
     return () => URL.revokeObjectURL(url)
   }, [videoData])
 
+  // Measure container width for zoom calculations and attach non-passive wheel listener
+  useEffect(() => {
+    const container = thumbnailContainerRef.current
+    if (!container) return
+
+    const updateWidth = () => {
+      setContainerWidthPx(container.offsetWidth)
+    }
+
+    updateWidth()
+
+    const resizeObserver = new ResizeObserver(updateWidth)
+    resizeObserver.observe(container)
+
+    // Attach non-passive wheel listener to allow preventDefault
+    container.addEventListener("wheel", handleWheel, { passive: false })
+
+    return () => {
+      resizeObserver.disconnect()
+      container.removeEventListener("wheel", handleWheel)
+    }
+  }, [handleWheel])
+
+  // Request thumbnails when timestamps change
+  useEffect(() => {
+    if (isReady && timestamps.length > 0) {
+      requestThumbnails(timestamps)
+    }
+  }, [isReady, timestamps, requestThumbnails])
+
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
 
     const handleLoadedMetadata = () => {
       setDuration(video.duration)
-      generateThumbnails(video)
     }
 
     const handleTimeUpdate = () => {
@@ -54,31 +108,6 @@ export function TrimScreen() {
       video.removeEventListener("timeupdate", handleTimeUpdate)
     }
   }, [videoUrl])
-
-  const generateThumbnails = async (video: HTMLVideoElement) => {
-    const canvas = document.createElement("canvas")
-    const ctx = canvas.getContext("2d")
-    if (!ctx) return
-
-    canvas.width = 160
-    canvas.height = 90
-
-    const thumbCount = 10
-    const interval = video.duration / thumbCount
-    const thumbs: string[] = []
-
-    for (let i = 0; i < thumbCount; i++) {
-      video.currentTime = i * interval
-      await new Promise((resolve) => {
-        video.onseeked = resolve
-      })
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-      thumbs.push(canvas.toDataURL())
-    }
-
-    setThumbnails(thumbs)
-    video.currentTime = 0
-  }
 
   const togglePlay = () => {
     if (!videoRef.current) return
@@ -106,11 +135,14 @@ export function TrimScreen() {
     setCurrentTime(time)
   }
 
-  const handleThumbnailClick = (index: number) => {
+  /**
+   * Handles click on a thumbnail to seek to that timestamp.
+   * @param timestampSec - The timestamp in seconds to seek to
+   */
+  const handleThumbnailClick = (timestampSec: number) => {
     if (!videoRef.current) return
-    const time = (index / thumbnails.length) * duration
-    videoRef.current.currentTime = time
-    setCurrentTime(time)
+    videoRef.current.currentTime = timestampSec
+    setCurrentTime(timestampSec)
   }
 
   const handleSplit = () => {
@@ -145,13 +177,43 @@ export function TrimScreen() {
     return `${mins}:${secs.toString().padStart(2, "0")}`
   }
 
-  const getSelectionStyle = () => {
+  /**
+   * Calculates selection overlay style for the timeline.
+   * Uses full video duration for positioning.
+   */
+  const getTimelineSelectionStyle = () => {
     if (startTime === null || endTime === null) return {}
     const start = (startTime / duration) * 100
     const end = (endTime / duration) * 100
     return {
       left: `${start}%`,
       width: `${end - start}%`,
+    }
+  }
+
+  /**
+   * Calculates selection overlay style for the thumbnail strip.
+   * Accounts for the visible range when zoomed.
+   */
+  const getThumbnailSelectionStyle = () => {
+    if (startTime === null || endTime === null || timestamps.length === 0) return {}
+
+    const visibleEndSec = visibleStartSec + (timestamps.length - 1) * (timestamps.length > 1 ? timestamps[1] - timestamps[0] : duration)
+    const visibleDuration = visibleEndSec - visibleStartSec
+
+    if (visibleDuration <= 0) return {}
+
+    // Calculate relative positions within the visible range
+    const relativeStart = Math.max(0, (startTime - visibleStartSec) / visibleDuration)
+    const relativeEnd = Math.min(1, (endTime - visibleStartSec) / visibleDuration)
+
+    if (relativeEnd <= 0 || relativeStart >= 1) {
+      return { display: "none" } // Selection is outside visible range
+    }
+
+    return {
+      left: `${Math.max(0, relativeStart) * 100}%`,
+      width: `${(Math.min(1, relativeEnd) - Math.max(0, relativeStart)) * 100}%`,
     }
   }
 
@@ -192,7 +254,7 @@ export function TrimScreen() {
               style={{ width: `${(currentTime / duration) * 100}%` }}
             />
             {startTime !== null && endTime !== null && (
-              <div className="absolute top-0 h-full bg-yellow-500/30 rounded-full" style={getSelectionStyle()} />
+              <div className="absolute top-0 h-full bg-yellow-500/30 rounded-full" style={getTimelineSelectionStyle()} />
             )}
             <div
               className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-accent rounded-full shadow-lg transition-all"
@@ -217,38 +279,56 @@ export function TrimScreen() {
           </div>
         </div>
 
-        {thumbnails.length > 0 && (
-          <div className="relative">
-            <div className="flex gap-1 overflow-x-auto pb-2">
-              {thumbnails.map((thumb, index) => (
+        {/* Thumbnail strip with zoom support */}
+        <div className="relative">
+          <div
+            ref={thumbnailContainerRef}
+            className="flex gap-1 pb-2"
+          >
+            {timestamps.map((timestamp) => {
+              const thumb = thumbnailMap.get(timestamp)
+              const isLoading = !thumb
+              return (
                 <div
-                  key={index}
+                  key={timestamp}
                   className="relative flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => handleThumbnailClick(index)}
+                  onClick={() => handleThumbnailClick(timestamp)}
                 >
-                  <img
-                    src={thumb || "/placeholder.svg"}
-                    alt={`Frame ${index}`}
-                    className="w-40 h-24 object-cover rounded border-2 border-border"
-                  />
+                  {isLoading ? (
+                    <div className="w-40 h-24 bg-secondary rounded border-2 border-border flex items-center justify-center">
+                      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : (
+                    <img
+                      src={thumb}
+                      alt={`Frame at ${formatTime(timestamp)}`}
+                      className="w-40 h-24 object-cover rounded border-2 border-border"
+                    />
+                  )}
                 </div>
-              ))}
-            </div>
-            {startTime !== null && endTime !== null && (
-              <div
-                className="absolute top-0 h-24 border-2 border-yellow-500 rounded pointer-events-none"
-                style={getSelectionStyle()}
-              >
-                <button
-                  className="absolute -right-3 -top-3 w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center text-background cursor-pointer pointer-events-auto"
-                  onClick={handleClearSelection}
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            )}
+              )
+            })}
           </div>
-        )}
+          {startTime !== null && endTime !== null && (
+            <div
+              className="absolute top-0 h-24 border-2 border-yellow-500 rounded pointer-events-none"
+              style={getThumbnailSelectionStyle()}
+            >
+              <button
+                className="absolute -right-3 -top-3 w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center text-background cursor-pointer pointer-events-auto"
+                onClick={handleClearSelection}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+          {/* Zoom indicator */}
+          {zoomLevel > 0 && (
+            <div className="absolute bottom-0 right-0 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
+              Zoom: {Math.round(zoomLevel * 100)}%
+            </div>
+          )}
+        </div>
 
         {(startTime !== null || endTime !== null) && (
           <div className="bg-secondary/50 rounded-lg p-4">
