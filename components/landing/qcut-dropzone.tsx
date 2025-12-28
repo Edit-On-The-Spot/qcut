@@ -9,7 +9,7 @@ interface QcutDropzoneProps {
 }
 
 /**
- * Drag-and-drop file upload zone for video files.
+ * Drag-and-drop file selection zone for video files.
  * Provides visual feedback during drag operations.
  */
 export const QcutDropzone = ({ onFileSelect, isDragging, onDragStateChange }: QcutDropzoneProps) => {
@@ -43,7 +43,7 @@ export const QcutDropzone = ({ onFileSelect, isDragging, onDragStateChange }: Qc
     <div className="px-6 pb-16 opacity-0 animate-fade-in-up animation-delay-400">
       <div className="max-w-4xl mx-auto">
         <label
-          htmlFor="video-upload"
+          htmlFor="video-select"
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
@@ -58,7 +58,7 @@ export const QcutDropzone = ({ onFileSelect, isDragging, onDragStateChange }: Qc
             }
           `}
         >
-          <input id="video-upload" type="file" accept="video/*" onChange={handleFileInput} className="sr-only" />
+          <input id="video-select" type="file" accept="video/*" onChange={handleFileInput} className="sr-only" />
 
           <div
             className={`
