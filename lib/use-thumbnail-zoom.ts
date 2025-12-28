@@ -84,8 +84,8 @@ export function useThumbnailZoom(config: ThumbnailZoomConfig): ThumbnailZoomResu
   const [visibleStartSec, setVisibleStartSec] = useState(0)
   const [visibleDurationSec, setVisibleDurationSec] = useState(durationSec)
 
-  // Track if we've initialized with the duration
-  const isInitializedRef = useRef(false)
+  // Track if user has manually zoomed (to distinguish from initial state)
+  const hasZoomedRef = useRef(false)
 
   const thumbnailCount = useMemo(
     () => calculateThumbnailCount(containerWidthPx),
@@ -108,9 +108,14 @@ export function useThumbnailZoom(config: ThumbnailZoomConfig): ThumbnailZoomResu
   const clampedVisibleDurationSec = useMemo(() => {
     if (durationSec <= 0) return 0
 
-    // If duration changed (e.g., video loaded), reset to full duration
-    if (!isInitializedRef.current || visibleDurationSec > durationSec) {
-      isInitializedRef.current = true
+    // If user hasn't zoomed yet, always show full video duration
+    // This handles the case where durationSec changes from 0 to actual value
+    if (!hasZoomedRef.current) {
+      return durationSec
+    }
+
+    // If visible duration exceeds video duration, clamp to video duration
+    if (visibleDurationSec > durationSec) {
       return durationSec
     }
 
@@ -166,6 +171,9 @@ export function useThumbnailZoom(config: ThumbnailZoomConfig): ThumbnailZoomResu
   const handleWheel = useCallback((event: WheelEvent) => {
     event.preventDefault()
 
+    // Mark that user has started zooming, so we use their zoom state instead of auto-syncing
+    hasZoomedRef.current = true
+
     // Get mouse position relative to container
     const target = event.currentTarget as HTMLElement
     const rect = target.getBoundingClientRect()
@@ -175,9 +183,14 @@ export function useThumbnailZoom(config: ThumbnailZoomConfig): ThumbnailZoomResu
     const isZoomingIn = event.deltaY < 0
 
     setVisibleDurationSec(prevDuration => {
-      // Calculate current visible start for mouse position calculation
-      // We need to use the clamped values here
-      const currentDuration = Math.max(minDurationSec, Math.min(maxDurationSec, prevDuration))
+      // Use max duration if previous duration was invalid (e.g., initialized to 0)
+      // This ensures first zoom starts from full video, not from 0
+      const effectivePrevDuration = prevDuration <= 0 || prevDuration > maxDurationSec
+        ? maxDurationSec
+        : prevDuration
+
+      // Calculate current visible duration, clamped to valid range
+      const currentDuration = Math.max(minDurationSec, Math.min(maxDurationSec, effectivePrevDuration))
 
       // Calculate new duration with consistent multiplicative step
       const newDuration = isZoomingIn
@@ -189,8 +202,13 @@ export function useThumbnailZoom(config: ThumbnailZoomConfig): ThumbnailZoomResu
     })
 
     setVisibleStartSec(prevStart => {
+      // Use max duration if visible duration was invalid (e.g., initialized to 0)
+      const effectiveVisibleDuration = visibleDurationSec <= 0 || visibleDurationSec > maxDurationSec
+        ? maxDurationSec
+        : visibleDurationSec
+
       // Get current state for calculations
-      const currentDuration = Math.max(minDurationSec, Math.min(maxDurationSec, visibleDurationSec))
+      const currentDuration = Math.max(minDurationSec, Math.min(maxDurationSec, effectiveVisibleDuration))
       const currentStart = Math.max(0, Math.min(durationSec - currentDuration, prevStart))
 
       // Calculate the timestamp under the mouse cursor

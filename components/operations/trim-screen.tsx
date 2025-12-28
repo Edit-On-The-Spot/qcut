@@ -316,6 +316,10 @@ export function TrimScreen() {
                       className="w-40 h-24 object-cover rounded border-2 border-border"
                     />
                   )}
+                  {/* Timestamp overlay */}
+                  <span className="absolute bottom-1 left-1 px-1 py-0.5 text-xs bg-black/70 text-white rounded">
+                    {formatTime(timestamp)}
+                  </span>
                 </div>
               )
             })}
