@@ -182,10 +182,28 @@ export function TrimScreen() {
     return null
   }
 
+  /**
+   * Formats time as M:SS for display on timeline and selection info.
+   * @param seconds - Time in seconds
+   * @returns Formatted string like "1:05"
+   */
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
     const secs = Math.floor(seconds % 60)
     return `${mins}:${secs.toString().padStart(2, "0")}`
+  }
+
+  /**
+   * Formats time with centisecond precision for thumbnail overlays.
+   * Shows sub-second detail when thumbnails are close together during zoom.
+   * @param seconds - Time in seconds
+   * @returns Formatted string like "1:05.23" (23 centiseconds)
+   */
+  const formatTimeWithCentiseconds = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    const centiseconds = Math.floor((seconds % 1) * 100)
+    return `${mins}:${secs.toString().padStart(2, "0")}.${centiseconds.toString().padStart(2, "0")}`
   }
 
   /**
@@ -318,7 +336,7 @@ export function TrimScreen() {
                   )}
                   {/* Timestamp overlay */}
                   <span className="absolute bottom-1 left-1 px-1 py-0.5 text-xs bg-black/70 text-white rounded">
-                    {formatTime(timestamp)}
+                    {formatTimeWithCentiseconds(timestamp)}
                   </span>
                 </div>
               )
