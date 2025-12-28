@@ -34,12 +34,14 @@ export function TrimScreen() {
   const framerateFps = useVideoFramerate(videoRef)
 
   // FFmpeg thumbnail generation with caching
-  const { requestThumbnails, getThumbnails, isReady } = useFFmpegThumbnails(videoData)
+  const { requestThumbnails, cancelPending, getThumbnails, isReady } = useFFmpegThumbnails(videoData)
+  const prevZoomLevelRef = useRef(0)
 
   // Thumbnail zoom state and calculations
   const {
     zoomLevel,
     visibleStartSec,
+    visibleDurationSec,
     timestamps,
     handleWheel
   } = useThumbnailZoom({
@@ -80,6 +82,15 @@ export function TrimScreen() {
       container.removeEventListener("wheel", handleWheel)
     }
   }, [handleWheel])
+
+  // Cancel pending thumbnails when zoom level changes to avoid generating
+  // thumbnails that are no longer needed at the previous zoom level
+  useEffect(() => {
+    if (prevZoomLevelRef.current !== zoomLevel) {
+      cancelPending()
+      prevZoomLevelRef.current = zoomLevel
+    }
+  }, [zoomLevel, cancelPending])
 
   // Request thumbnails when timestamps change
   useEffect(() => {
@@ -322,10 +333,16 @@ export function TrimScreen() {
               </button>
             </div>
           )}
-          {/* Zoom indicator */}
-          {zoomLevel > 0 && (
-            <div className="absolute bottom-0 right-0 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
-              Zoom: {Math.round(zoomLevel * 100)}%
+          {/* Timeline position indicator - shows where visible thumbnails are within full video */}
+          {zoomLevel > 0 && duration > 0 && (
+            <div className="mt-1 h-1.5 bg-secondary rounded-full relative">
+              <div
+                className="absolute h-full bg-muted-foreground/50 rounded-full"
+                style={{
+                  left: `${(visibleStartSec / duration) * 100}%`,
+                  width: `${(visibleDurationSec / duration) * 100}%`,
+                }}
+              />
             </div>
           )}
         </div>

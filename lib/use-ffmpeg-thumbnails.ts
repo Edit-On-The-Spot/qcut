@@ -202,6 +202,16 @@ export function useFFmpegThumbnails(videoData: VideoData | null) {
   }, [videoData, setCache])
 
   /**
+   * Cancels all pending thumbnail generation requests.
+   * Useful when zoom level changes to avoid generating thumbnails
+   * that are no longer needed.
+   */
+  const cancelPending = useCallback(() => {
+    pendingQueueRef.current = []
+    setIsGenerating(false)
+  }, [])
+
+  /**
    * Requests thumbnails for the given timestamps.
    * Thumbnails are generated asynchronously and cached.
    * @param timestampsSec - Array of timestamps in seconds
@@ -252,6 +262,7 @@ export function useFFmpegThumbnails(videoData: VideoData | null) {
     isGenerating,
     pendingCount: pendingQueueRef.current.length,
     requestThumbnails,
+    cancelPending,
     getThumbnails,
     isReady
   }
