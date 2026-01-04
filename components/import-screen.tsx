@@ -6,7 +6,11 @@ import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { QcutHero } from "@/components/landing/qcut-hero"
 import { QcutDropzone } from "@/components/landing/qcut-dropzone"
+import { WhyQcutSection } from "@/components/landing/why-qcut-section"
 import { QcutFeatures } from "@/components/landing/qcut-features"
+import { HowItWorksSection } from "@/components/landing/how-it-works-section"
+import { FAQSection } from "@/components/landing/faq-section"
+import { FinalCTASection } from "@/components/landing/final-cta-section"
 import { QcutFooter } from "@/components/landing/qcut-footer"
 import { FileSelectModal } from "@/components/file-select-modal"
 import { useVideo, type ActionType } from "@/lib/video-context"
@@ -111,7 +115,11 @@ export function ImportScreen() {
       <main>
         <QcutHero onSelectVideo={handleSelectVideo} />
         <QcutDropzone onFileSelect={handleFileSelect} isDragging={isDragging} onDragStateChange={setIsDragging} />
+        <WhyQcutSection />
         <QcutFeatures onFeatureClick={handleFeatureClick} />
+        <HowItWorksSection />
+        <FAQSection />
+        <FinalCTASection onStartEditing={handleSelectVideo} />
       </main>
 
       <QcutFooter />

@@ -233,7 +233,8 @@ export function useVideoProcessor() {
       const outputData = await ffmpeg.readFile(outputFileName)
 
       const mimeType = getMimeType(outputExt)
-      const blob = new Blob([outputData], { type: mimeType })
+      const blobData = outputData instanceof Uint8Array ? outputData.slice().buffer : outputData
+      const blob = new Blob([blobData], { type: mimeType })
       const url = URL.createObjectURL(blob)
 
       setOutputUrl(url)
