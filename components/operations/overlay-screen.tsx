@@ -1,0 +1,264 @@
+"use client"
+
+import type React from "react"
+
+import { useState, useRef, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { ArrowLeft, Play, Pause, Upload } from "lucide-react"
+import { useVideo, type ActionConfig } from "@/lib/video-context"
+import { ProcessingButton } from "@/components/processing-button"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Slider } from "@/components/ui/slider"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+/**
+ * Overlay screen for adding image watermarks/overlays to video.
+ * Supports position presets, custom offset, scale, and opacity.
+ */
+export function OverlayScreen() {
+  const router = useRouter()
+  const { videoData } = useVideo()
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [videoUrl, setVideoUrl] = useState<string>("")
+  const [overlayFile, setOverlayFile] = useState<File | null>(null)
+  const [overlayPreview, setOverlayPreview] = useState<string>("")
+  const [position, setPosition] = useState("top-left")
+  const [offsetX, setOffsetX] = useState("10")
+  const [offsetY, setOffsetY] = useState("10")
+  const [scalePct, setScalePct] = useState([100])
+  const [opacityPct, setOpacityPct] = useState([100])
+
+  useEffect(() => {
+    if (!videoData) return
+    const url = URL.createObjectURL(videoData.file)
+    setVideoUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [videoData])
+
+  useEffect(() => {
+    if (!overlayFile) {
+      setOverlayPreview("")
+      return
+    }
+    const url = URL.createObjectURL(overlayFile)
+    setOverlayPreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [overlayFile])
+
+  const togglePlay = () => {
+    if (!videoRef.current) return
+    if (isPlaying) {
+      videoRef.current.pause()
+    } else {
+      videoRef.current.play()
+    }
+    setIsPlaying(!isPlaying)
+  }
+
+  const handleOverlayUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setOverlayFile(file)
+    }
+  }
+
+  const getActionConfig = (): ActionConfig => ({
+    type: "overlay",
+    params: {
+      overlayFile,
+      position,
+      offsetX: parseInt(offsetX) || 10,
+      offsetY: parseInt(offsetY) || 10,
+      scalePct: scalePct[0],
+      opacityPct: opacityPct[0],
+    },
+  })
+
+  const getOverlayPositionStyle = (): React.CSSProperties => {
+    const baseStyle: React.CSSProperties = {
+      position: "absolute",
+      maxWidth: `${scalePct[0]}%`,
+      maxHeight: `${scalePct[0]}%`,
+      opacity: opacityPct[0] / 100,
+      objectFit: "contain",
+    }
+    const xOffset = parseInt(offsetX) || 10
+    const yOffset = parseInt(offsetY) || 10
+    switch (position) {
+      case "top-right":
+        return { ...baseStyle, top: yOffset, right: xOffset }
+      case "bottom-left":
+        return { ...baseStyle, bottom: yOffset, left: xOffset }
+      case "bottom-right":
+        return { ...baseStyle, bottom: yOffset, right: xOffset }
+      case "center":
+        return { ...baseStyle, top: "50%", left: "50%", transform: "translate(-50%, -50%)" }
+      default: // top-left
+        return { ...baseStyle, top: yOffset, left: xOffset }
+    }
+  }
+
+  const formatFileSize = (bytes: number) => {
+    return (bytes / (1024 * 1024)).toFixed(2) + " MB"
+  }
+
+  if (!videoData) {
+    router.push("/")
+    return null
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto space-y-6">
+      <Button variant="ghost" onClick={() => router.push("/actions")}>
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        Back
+      </Button>
+
+      <div className="space-y-4">
+        <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+          <video ref={videoRef} src={videoUrl} className="w-full h-full object-contain" />
+          {overlayPreview && (
+            <img
+              src={overlayPreview}
+              alt="Overlay preview"
+              style={getOverlayPositionStyle()}
+            />
+          )}
+        </div>
+
+        <div className="flex items-center justify-center">
+          <Button variant="outline" size="lg" className="w-12 h-12 rounded-full bg-transparent" onClick={togglePlay}>
+            {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+          </Button>
+        </div>
+
+        <div className="bg-secondary/50 rounded-lg p-6 space-y-6">
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold">Add Overlay</h3>
+            <p className="text-sm text-muted-foreground">Add an image overlay or watermark to your video</p>
+          </div>
+
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <Label>Overlay Image</Label>
+              {overlayFile ? (
+                <div className="bg-background rounded-lg p-4 border border-border">
+                  <div className="flex items-center gap-4">
+                    {overlayPreview && (
+                      <img
+                        src={overlayPreview}
+                        alt="Overlay"
+                        className="w-16 h-16 object-contain rounded"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{overlayFile.name}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{formatFileSize(overlayFile.size)}</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-transparent"
+                      onClick={() => setOverlayFile(null)}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleOverlayUpload}
+                    className="hidden"
+                    id="overlay-upload"
+                  />
+                  <Button variant="outline" className="w-full bg-transparent" asChild>
+                    <label htmlFor="overlay-upload" className="cursor-pointer">
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload Overlay Image
+                    </label>
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-2">PNG recommended for transparency support</p>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Position</Label>
+              <Select value={position} onValueChange={setPosition}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="top-left">Top Left</SelectItem>
+                  <SelectItem value="top-right">Top Right</SelectItem>
+                  <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                  <SelectItem value="bottom-right">Bottom Right</SelectItem>
+                  <SelectItem value="center">Center</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {position !== "center" && (
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>X Offset (pixels)</Label>
+                  <Input
+                    type="number"
+                    value={offsetX}
+                    onChange={(e) => setOffsetX(e.target.value)}
+                    placeholder="10"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Y Offset (pixels)</Label>
+                  <Input
+                    type="number"
+                    value={offsetY}
+                    onChange={(e) => setOffsetY(e.target.value)}
+                    placeholder="10"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <Label>Scale</Label>
+                <span className="text-sm text-muted-foreground">{scalePct[0]}%</span>
+              </div>
+              <Slider
+                value={scalePct}
+                onValueChange={setScalePct}
+                min={10}
+                max={100}
+                step={5}
+              />
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <Label>Opacity</Label>
+                <span className="text-sm text-muted-foreground">{opacityPct[0]}%</span>
+              </div>
+              <Slider
+                value={opacityPct}
+                onValueChange={setOpacityPct}
+                min={10}
+                max={100}
+                step={5}
+              />
+            </div>
+          </div>
+
+          {overlayFile && <ProcessingButton config={getActionConfig()} onReset={() => setOverlayFile(null)} />}
+        </div>
+      </div>
+    </div>
+  )
+}

@@ -13,6 +13,9 @@ export type ActionType =
   | "resize"
   | "frame-extract"
   | "combine"
+  | "normalize-audio"
+  | "rotate"
+  | "overlay"
 
 export interface VideoData {
   file: File

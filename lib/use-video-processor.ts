@@ -21,6 +21,10 @@ export function useVideoProcessor() {
       case "convert":
         return config.params.format || "mp4"
       case "extract-audio":
+        // Support extracting audio OR video (muted)
+        if (config.params.extractMode === "video") {
+          return config.params.videoFormat || "mp4"
+        }
         return config.params.format || "mp3"
       case "gif":
         return "gif"
@@ -57,6 +61,15 @@ export function useVideoProcessor() {
           output
         ]
       case "extract-audio":
+        // Support extracting audio OR video (muted)
+        if (config.params.extractMode === "video") {
+          return [
+            "-i", input,
+            "-an",
+            "-c:v", "copy",
+            output
+          ]
+        }
         return [
           "-i", input,
           "-vn",
@@ -79,6 +92,81 @@ export function useVideoProcessor() {
           "-c:a", "copy",
           output
         ]
+      case "normalize-audio":
+        return [
+          "-i", input,
+          "-af", `loudnorm=I=${config.params.targetLoudnessLufs || -16}:TP=${config.params.truePeakDb || -1.5}:LRA=${config.params.loudnessRangeLu || 11}`,
+          "-c:v", "copy",
+          output
+        ]
+      case "rotate": {
+        const filters: string[] = []
+        const rotation = config.params.rotation || 0
+        if (rotation === 90) {
+          filters.push("transpose=1")
+        } else if (rotation === 180) {
+          filters.push("transpose=1,transpose=1")
+        } else if (rotation === 270) {
+          filters.push("transpose=2")
+        }
+        if (config.params.isFlipHorizontal) {
+          filters.push("hflip")
+        }
+        if (config.params.isFlipVertical) {
+          filters.push("vflip")
+        }
+        if (filters.length === 0) {
+          return ["-i", input, "-c", "copy", output]
+        }
+        return [
+          "-i", input,
+          "-vf", filters.join(","),
+          "-c:a", "copy",
+          output
+        ]
+      }
+      case "overlay": {
+        const position = config.params.position || "top-left"
+        const scalePct = config.params.scalePct || 100
+        const opacityPct = config.params.opacityPct || 100
+        let xExpr: string
+        let yExpr: string
+        const offsetX = config.params.offsetX || 10
+        const offsetY = config.params.offsetY || 10
+        switch (position) {
+          case "top-right":
+            xExpr = `W-w-${offsetX}`
+            yExpr = String(offsetY)
+            break
+          case "bottom-left":
+            xExpr = String(offsetX)
+            yExpr = `H-h-${offsetY}`
+            break
+          case "bottom-right":
+            xExpr = `W-w-${offsetX}`
+            yExpr = `H-h-${offsetY}`
+            break
+          case "center":
+            xExpr = "(W-w)/2"
+            yExpr = "(H-h)/2"
+            break
+          default: // top-left
+            xExpr = String(offsetX)
+            yExpr = String(offsetY)
+        }
+        const scaleFilter = scalePct !== 100 ? `[1:v]scale=iw*${scalePct}/100:-1[ovr];` : ""
+        const overlayInput = scalePct !== 100 ? "[ovr]" : "[1:v]"
+        const opacityFilter = opacityPct !== 100 ? `format=rgba,colorchannelmixer=aa=${opacityPct / 100}` : ""
+        const overlayInputWithOpacity = opacityFilter ? `${overlayInput}${opacityFilter}[ovr2];[0:v][ovr2]` : `[0:v]${overlayInput}`
+        const filterComplex = `${scaleFilter}${overlayInputWithOpacity}overlay=${xExpr}:${yExpr}`
+        return [
+          "-i", input,
+          "-i", "overlay.png",
+          "-filter_complex", filterComplex,
+          "-c:a", "copy",
+          output
+        ]
+      }
       default:
         return ["-i", input, output]
     }
@@ -126,6 +214,13 @@ export function useVideoProcessor() {
 
       const inputFileName = "input.mp4"
       await ffmpeg.writeFile(inputFileName, uint8Array)
+
+      // Write overlay image file if present (for overlay operation)
+      if (config.type === "overlay" && config.params.overlayFile) {
+        const overlayBuffer = await (config.params.overlayFile as File).arrayBuffer()
+        const overlayUint8 = new Uint8Array(overlayBuffer)
+        await ffmpeg.writeFile("overlay.png", overlayUint8)
+      }
 
       const outputExt = getOutputExtension(config)
       const outputFileName = `output.${outputExt}`

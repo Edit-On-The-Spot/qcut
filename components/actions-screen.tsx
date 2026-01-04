@@ -14,6 +14,9 @@ import {
   Layers,
   ArrowLeft,
   FileVideo,
+  Volume2,
+  RotateCw,
+  Image,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -78,6 +81,24 @@ const actions: Array<{
     label: "Combine Clips",
     description: "Concatenate multiple video clips",
     icon: Layers,
+  },
+  {
+    type: "normalize-audio",
+    label: "Normalize Audio",
+    description: "Adjust audio levels for consistent loudness",
+    icon: Volume2,
+  },
+  {
+    type: "rotate",
+    label: "Rotate / Flip",
+    description: "Rotate or flip your video",
+    icon: RotateCw,
+  },
+  {
+    type: "overlay",
+    label: "Add Overlay",
+    description: "Add image watermark or overlay",
+    icon: Image,
   },
 ]
 

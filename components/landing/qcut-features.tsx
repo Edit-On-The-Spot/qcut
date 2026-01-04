@@ -10,6 +10,9 @@ import {
   Maximize2,
   Film,
   Layers,
+  Volume2,
+  RotateCw,
+  ImagePlus,
 } from "lucide-react"
 import type { ActionType } from "@/lib/video-context"
 
@@ -75,6 +78,24 @@ const features: Feature[] = [
     title: "Combine Clips",
     description: "Merge multiple videos",
     actionType: "combine",
+  },
+  {
+    icon: Volume2,
+    title: "Normalize Audio",
+    description: "Consistent loudness levels",
+    actionType: "normalize-audio",
+  },
+  {
+    icon: RotateCw,
+    title: "Rotate / Flip",
+    description: "Rotate or mirror video",
+    actionType: "rotate",
+  },
+  {
+    icon: ImagePlus,
+    title: "Add Overlay",
+    description: "Image watermarks & logos",
+    actionType: "overlay",
   },
 ]
 
