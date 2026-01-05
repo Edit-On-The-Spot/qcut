@@ -18,7 +18,7 @@ export function Header() {
       <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <Image src="/qcut-logo.png" alt="Qcut" width={84} height={24} className="h-7 w-auto" />
+          <Image src="/qcut-logo.png" alt="Qcut" width={80} height={36} className="h-9 w-auto" />
         </Link>
 
         {/* Right side */}
