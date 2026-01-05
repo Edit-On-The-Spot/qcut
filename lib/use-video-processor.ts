@@ -100,8 +100,28 @@ export function useVideoProcessor() {
           output
         ]
       case "rotate": {
-        const filters: string[] = []
         const rotation = config.params.rotation || 0
+        const hasFlip = config.params.isFlipHorizontal || config.params.isFlipVertical
+        const isLosslessFormat = config.params.isLosslessFormat === true
+
+        // Use lossless metadata rotation for supported formats when only rotating (no flips)
+        // MP4/MOV containers support rotation metadata that players interpret at display time
+        if (isLosslessFormat && !hasFlip) {
+          if (rotation === 0) {
+            return ["-i", input, "-c", "copy", output]
+          }
+          // Set rotation metadata - FFmpeg needs displaymatrix for proper lossless rotation
+          // Using -metadata:s:v rotate=N sets the rotation display hint
+          return [
+            "-i", input,
+            "-c", "copy",
+            "-metadata:s:v", `rotate=${rotation}`,
+            output
+          ]
+        }
+
+        // Fall back to filter-based rotation for flips or unsupported formats
+        const filters: string[] = []
         if (rotation === 90) {
           filters.push("transpose=1")
         } else if (rotation === 180) {

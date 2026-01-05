@@ -8,9 +8,22 @@ import { useVideo, type ActionConfig } from "@/lib/video-context"
 import { ProcessingButton } from "@/components/processing-button"
 import { Label } from "@/components/ui/label"
 
+/** File extensions that support lossless rotation via metadata */
+const LOSSLESS_ROTATION_EXTENSIONS = ["mp4", "mov", "m4v"]
+
+/**
+ * Checks if a filename has an extension that supports lossless rotation.
+ * MP4/MOV containers can store rotation as metadata without re-encoding.
+ */
+function isLosslessRotationSupported(filename: string): boolean {
+  const ext = filename.split(".").pop()?.toLowerCase() || ""
+  return LOSSLESS_ROTATION_EXTENSIONS.includes(ext)
+}
+
 /**
  * Rotate screen for rotating and flipping video.
  * Supports 90/180/270 degree rotations and horizontal/vertical flips.
+ * Uses lossless metadata rotation for MP4/MOV when only rotating (no flips).
  */
 export function RotateScreen() {
   const router = useRouter()
@@ -21,6 +34,10 @@ export function RotateScreen() {
   const [rotation, setRotation] = useState(0)
   const [isFlipHorizontal, setIsFlipHorizontal] = useState(false)
   const [isFlipVertical, setIsFlipVertical] = useState(false)
+
+  const isLosslessFormat = videoData ? isLosslessRotationSupported(videoData.file.name) : false
+  const hasFlip = isFlipHorizontal || isFlipVertical
+  const willUseLossless = isLosslessFormat && !hasFlip && rotation !== 0
 
   useEffect(() => {
     if (!videoData) return
@@ -45,6 +62,7 @@ export function RotateScreen() {
       rotation,
       isFlipHorizontal,
       isFlipVertical,
+      isLosslessFormat,
     },
   })
 
@@ -156,6 +174,17 @@ export function RotateScreen() {
               {isFlipVertical && ", flipped vertically"}
               {!hasTransformation && " (no changes)"}
             </p>
+            {hasTransformation && (
+              <p className={willUseLossless ? "text-green-500" : "text-muted-foreground"}>
+                {willUseLossless
+                  ? "Lossless mode: rotation via metadata (no re-encoding)"
+                  : hasFlip && isLosslessFormat
+                    ? "Re-encoding required: flips cannot be done losslessly"
+                    : !isLosslessFormat
+                      ? "Re-encoding required: format does not support lossless rotation"
+                      : ""}
+              </p>
+            )}
           </div>
 
           <ProcessingButton config={getActionConfig()} />
