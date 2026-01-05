@@ -14,21 +14,8 @@ export const metadata: Metadata = {
   description: "Simple, powerful video editing powered by FFmpeg",
   generator: "v0.app",
   icons: {
-    icon: [
-      {
-        url: "/icon-light-32x32.png",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: "/icon-dark-32x32.png",
-        media: "(prefers-color-scheme: dark)",
-      },
-      {
-        url: "/icon.svg",
-        type: "image/svg+xml",
-      },
-    ],
-    apple: "/apple-icon.png",
+    icon: "/qcut-logo.png",
+    apple: "/qcut-logo.png",
   },
 }
 
