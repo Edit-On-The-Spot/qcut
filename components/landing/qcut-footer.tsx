@@ -12,7 +12,8 @@ export const QcutFooter = () => {
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           {/* Logo & tagline */}
           <div className="flex flex-col items-center md:items-start gap-2">
-            <Image src="/qcut-logo.png" alt="QCut" width={90} height={40} className="h-10 w-auto" />
+            <Image src="/qcut-logo.png" alt="QCut" width={90} height={40} className="h-10 w-auto dark:hidden" />
+            <Image src="/qcut-logo-on-dark.png" alt="QCut" width={90} height={40} className="h-10 w-auto hidden dark:block" />
             <span className="text-sm text-muted-foreground text-center md:text-left">
               Simple video editing in your browser.
               <br />

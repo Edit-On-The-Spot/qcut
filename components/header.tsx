@@ -16,9 +16,10 @@ export function Header() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b">
       <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-        {/* Logo */}
+        {/* Logo - show light version in light mode, dark version in dark mode */}
         <Link href="/" className="flex items-center gap-2">
-          <Image src="/qcut-logo.png" alt="Qcut" width={80} height={36} className="h-9 w-auto" />
+          <Image src="/qcut-logo.png" alt="Qcut" width={80} height={36} className="h-9 w-auto dark:hidden" />
+          <Image src="/qcut-logo-on-dark.png" alt="Qcut" width={80} height={36} className="h-9 w-auto hidden dark:block" />
         </Link>
 
         {/* Right side */}
