@@ -135,9 +135,10 @@ export function useThumbnailZoom(config: ThumbnailZoomConfig): ThumbnailZoomResu
     return start
   }, [durationSec, visibleStartSec, clampedVisibleDurationSec])
 
-  // Calculate interval from visible duration
+  // Calculate interval from visible duration using fence-post logic:
+  // N thumbnails have N-1 gaps between them, so last thumbnail shows the end frame
   const intervalSec = useMemo(
-    () => (thumbnailCount > 0 ? clampedVisibleDurationSec / thumbnailCount : 1),
+    () => (thumbnailCount > 1 ? clampedVisibleDurationSec / (thumbnailCount - 1) : clampedVisibleDurationSec),
     [clampedVisibleDurationSec, thumbnailCount]
   )
 
