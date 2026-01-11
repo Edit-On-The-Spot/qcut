@@ -113,6 +113,7 @@ export function CompressScreen() {
               Original size: {(videoData.file.size / (1024 * 1024)).toFixed(2)} MB
             </p>
             <p className="text-muted-foreground">Estimated size: ~{estimatedSize()} MB</p>
+            <p className="text-muted-foreground">Re-encoding required: compression changes video bitrate.</p>
           </div>
 
           <ProcessingButton config={getActionConfig()} />

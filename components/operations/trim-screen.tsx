@@ -11,6 +11,7 @@ import { ProcessingButton } from "@/components/processing-button"
 import { useVideoFramerate } from "@/lib/use-video-framerate"
 import { useFFmpegThumbnails } from "@/lib/use-ffmpeg-thumbnails"
 import { useThumbnailZoom } from "@/lib/use-thumbnail-zoom"
+import { snapTimeToFrame } from "@/lib/time-utils"
 
 /**
  * Trim screen for cutting video segments.
@@ -136,12 +137,14 @@ export function TrimScreen() {
     setIsMuted(!isMuted)
   }
 
+  const snapTime = (timeSec: number) => snapTimeToFrame(timeSec, framerateFps, duration)
+
   const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!videoRef.current) return
     const rect = e.currentTarget.getBoundingClientRect()
     const x = e.clientX - rect.left
     const percentage = x / rect.width
-    const time = percentage * duration
+    const time = snapTime(percentage * duration)
     videoRef.current.currentTime = time
     setCurrentTime(time)
   }
@@ -152,15 +155,17 @@ export function TrimScreen() {
    */
   const handleThumbnailClick = (timestampSec: number) => {
     if (!videoRef.current) return
-    videoRef.current.currentTime = timestampSec
-    setCurrentTime(timestampSec)
+    const time = snapTime(timestampSec)
+    videoRef.current.currentTime = time
+    setCurrentTime(time)
   }
 
   const handleSplit = () => {
+    const time = snapTime(currentTime)
     if (startTime === null) {
-      setStartTime(currentTime)
+      setStartTime(time)
     } else if (endTime === null) {
-      setEndTime(currentTime)
+      setEndTime(time)
     }
   }
 
@@ -172,8 +177,8 @@ export function TrimScreen() {
   const getActionConfig = (): ActionConfig => ({
     type: "trim",
     params: {
-      start: startTime !== null ? startTime.toFixed(2) : "0",
-      end: endTime !== null ? endTime.toFixed(2) : duration.toFixed(2),
+      start: startTime !== null ? snapTime(startTime).toFixed(2) : "0",
+      end: endTime !== null ? snapTime(endTime).toFixed(2) : duration.toFixed(2),
     },
   })
 

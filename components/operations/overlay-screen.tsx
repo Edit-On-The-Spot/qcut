@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Play, Pause, Upload } from "lucide-react"
@@ -21,6 +21,7 @@ export function OverlayScreen() {
   const router = useRouter()
   const { videoData } = useVideo()
   const videoRef = useRef<HTMLVideoElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [videoUrl, setVideoUrl] = useState<string>("")
   const [overlayFile, setOverlayFile] = useState<File | null>(null)
@@ -30,6 +31,7 @@ export function OverlayScreen() {
   const [offsetY, setOffsetY] = useState("10")
   const [scalePct, setScalePct] = useState([100])
   const [opacityPct, setOpacityPct] = useState([100])
+  const [videoBox, setVideoBox] = useState({ width: 0, height: 0, offsetX: 0, offsetY: 0 })
 
   useEffect(() => {
     if (!videoData) return
@@ -47,6 +49,51 @@ export function OverlayScreen() {
     setOverlayPreview(url)
     return () => URL.revokeObjectURL(url)
   }, [overlayFile])
+
+  const updateVideoBox = useCallback(() => {
+    const container = containerRef.current
+    const video = videoRef.current
+    if (!container || !video || video.videoWidth === 0 || video.videoHeight === 0) return
+
+    const { width: containerWidth, height: containerHeight } = container.getBoundingClientRect()
+    const videoRatio = video.videoWidth / video.videoHeight
+    const containerRatio = containerWidth / containerHeight
+
+    let width = containerWidth
+    let height = containerHeight
+    if (containerRatio > videoRatio) {
+      height = containerHeight
+      width = height * videoRatio
+    } else {
+      width = containerWidth
+      height = width / videoRatio
+    }
+
+    const offsetXValue = (containerWidth - width) / 2
+    const offsetYValue = (containerHeight - height) / 2
+    setVideoBox({ width, height, offsetX: offsetXValue, offsetY: offsetYValue })
+  }, [])
+
+  useEffect(() => {
+    updateVideoBox()
+    const container = containerRef.current
+    if (!container) return
+    const observer = new ResizeObserver(updateVideoBox)
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [updateVideoBox])
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+    const handleMetadata = () => updateVideoBox()
+    video.addEventListener("loadedmetadata", handleMetadata)
+    video.addEventListener("loadeddata", handleMetadata)
+    return () => {
+      video.removeEventListener("loadedmetadata", handleMetadata)
+      video.removeEventListener("loadeddata", handleMetadata)
+    }
+  }, [updateVideoBox, videoUrl])
 
   const togglePlay = () => {
     if (!videoRef.current) return
@@ -118,14 +165,24 @@ export function OverlayScreen() {
       </Button>
 
       <div className="space-y-4">
-        <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+        <div ref={containerRef} className="relative aspect-video bg-black rounded-lg overflow-hidden">
           <video ref={videoRef} src={videoUrl} className="w-full h-full object-contain" />
           {overlayPreview && (
-            <img
-              src={overlayPreview}
-              alt="Overlay preview"
-              style={getOverlayPositionStyle()}
-            />
+            <div
+              className="absolute pointer-events-none"
+              style={{
+                top: videoBox.offsetY,
+                left: videoBox.offsetX,
+                width: videoBox.width,
+                height: videoBox.height,
+              }}
+            >
+              <img
+                src={overlayPreview}
+                alt="Overlay preview"
+                style={getOverlayPositionStyle()}
+              />
+            </div>
           )}
         </div>
 
@@ -254,6 +311,10 @@ export function OverlayScreen() {
                 step={5}
               />
             </div>
+          </div>
+
+          <div className="bg-background/50 rounded p-4 text-sm">
+            <p className="text-muted-foreground">Re-encoding required: overlays change video frames.</p>
           </div>
 
           {overlayFile && <ProcessingButton config={getActionConfig()} onReset={() => setOverlayFile(null)} />}

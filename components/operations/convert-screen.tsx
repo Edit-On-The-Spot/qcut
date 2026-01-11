@@ -109,6 +109,9 @@ export function ConvertScreen() {
           <div className="bg-background/50 rounded p-4 text-sm space-y-1">
             <p className="text-muted-foreground">Current format: {videoData.format || "Unknown"}</p>
             <p className="text-muted-foreground">Current codec: {videoData.codec || "Unknown"}</p>
+            {codec !== "copy" && (
+              <p className="text-muted-foreground">Re-encoding required: selected codec will re-encode video.</p>
+            )}
           </div>
 
           <ProcessingButton config={getActionConfig()} />

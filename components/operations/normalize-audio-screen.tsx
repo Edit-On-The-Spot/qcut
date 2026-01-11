@@ -138,6 +138,7 @@ export function NormalizeAudioScreen() {
               Audio normalization adjusts the overall loudness without changing the dynamic range significantly.
               This is useful for making audio consistent across different sources.
             </p>
+            <p className="text-muted-foreground mt-2">Re-encoding required: audio filters must be re-encoded.</p>
           </div>
 
           <ProcessingButton config={getActionConfig()} />

@@ -19,6 +19,7 @@ export type ActionType =
 
 export interface VideoData {
   file: File
+  fileData?: Uint8Array
   duration?: number
   width?: number
   height?: number

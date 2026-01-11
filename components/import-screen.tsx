@@ -75,6 +75,15 @@ export function ImportScreen() {
       format: file.name.split(".").pop()?.toUpperCase(),
     })
 
+    void file
+      .arrayBuffer()
+      .then((buffer) => {
+        setVideoData((current) =>
+          current?.file === file ? { ...current, fileData: new Uint8Array(buffer) } : current
+        )
+      })
+      .catch(() => {})
+
     if (pendingAction) {
       router.push(`/${pendingAction}`)
       setPendingAction(null)

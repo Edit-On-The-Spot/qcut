@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback } from "react"
+import JSZip from "jszip"
 import { useFFmpeg, useVideo, type ActionConfig } from "./video-context"
 
 /**
@@ -29,7 +30,7 @@ export function useVideoProcessor() {
       case "gif":
         return "gif"
       case "frame-extract":
-        return config.params.format || "png"
+        return config.params.mode === "single" ? config.params.format || "png" : "zip"
       default:
         return "mp4"
     }
@@ -38,26 +39,28 @@ export function useVideoProcessor() {
   const buildFFmpegArgs = (config: ActionConfig, input: string, output: string): string[] => {
     switch (config.type) {
       case "trim":
+        const startSec = Number.parseFloat(config.params.start || "0")
+        const endSec = Number.parseFloat(config.params.end || String(videoData?.duration || 0))
+        const durationSec = Math.max(0, endSec - startSec)
         return [
+          "-ss", String(startSec || 0),
+          "-t", String(durationSec || 0),
           "-i", input,
-          "-ss", config.params.start || "0",
-          "-to", config.params.end || String(videoData?.duration || 0),
           "-c", "copy",
           output
         ]
       case "convert":
-        return [
-          "-i", input,
-          "-c:v", config.params.codec || "libx264",
-          "-c:a", "aac",
-          output
-        ]
+        const requestedCodec = config.params.codec || "libx264"
+        return requestedCodec === "copy"
+          ? ["-i", input, "-c", "copy", output]
+          : ["-i", input, "-c:v", requestedCodec, "-c:a", "copy", output]
       case "compress":
         return [
           "-i", input,
           "-vcodec", "libx264",
           "-crf", String(config.params.crf || 23),
           "-preset", config.params.preset || "medium",
+          "-c:a", "copy",
           output
         ]
       case "extract-audio":
@@ -89,14 +92,40 @@ export function useVideoProcessor() {
         return [
           "-i", input,
           "-vf", `scale=${config.params.width || -1}:${config.params.height || -1}`,
+          "-c:v", "libx264",
           "-c:a", "copy",
           output
         ]
+      case "frame-extract": {
+        const format = config.params.format || "png"
+        if (config.params.mode === "single") {
+          return [
+            "-ss", config.params.timestamp || "0",
+            "-i", input,
+            "-frames:v", "1",
+            output
+          ]
+        }
+        const interval = Number.parseFloat(config.params.interval || "1")
+        if (config.params.mode === "interval" && interval > 0) {
+          return [
+            "-i", input,
+            "-vf", `fps=1/${interval}`,
+            `frame_%04d.${format}`
+          ]
+        }
+        return [
+          "-i", input,
+          "-vsync", "0",
+          `frame_%04d.${format}`
+        ]
+      }
       case "normalize-audio":
         return [
           "-i", input,
           "-af", `loudnorm=I=${config.params.targetLoudnessLufs || -16}:TP=${config.params.truePeakDb || -1.5}:LRA=${config.params.loudnessRangeLu || 11}`,
           "-c:v", "copy",
+          "-c:a", "aac",
           output
         ]
       case "rotate": {
@@ -104,14 +133,10 @@ export function useVideoProcessor() {
         const hasFlip = config.params.isFlipHorizontal || config.params.isFlipVertical
         const isLosslessFormat = config.params.isLosslessFormat === true
 
-        // Use lossless metadata rotation for supported formats when only rotating (no flips)
-        // MP4/MOV containers support rotation metadata that players interpret at display time
         if (isLosslessFormat && !hasFlip) {
           if (rotation === 0) {
             return ["-i", input, "-c", "copy", output]
           }
-          // Set rotation metadata - FFmpeg needs displaymatrix for proper lossless rotation
-          // Using -metadata:s:v rotate=N sets the rotation display hint
           return [
             "-i", input,
             "-c", "copy",
@@ -141,10 +166,30 @@ export function useVideoProcessor() {
         return [
           "-i", input,
           "-vf", filters.join(","),
+          "-c:v", "libx264",
           "-c:a", "copy",
           output
         ]
       }
+      case "merge":
+        return [
+          "-i", input,
+          "-i", "audio.input",
+          "-map", "0:v:0",
+          "-map", "1:a:0",
+          "-shortest",
+          "-c:v", "copy",
+          "-c:a", "aac",
+          output
+        ]
+      case "combine":
+        return [
+          "-f", "concat",
+          "-safe", "0",
+          "-i", "concat.txt",
+          "-c", "copy",
+          output
+        ]
       case "overlay": {
         const position = config.params.position || "top-left"
         const scalePct = config.params.scalePct || 100
@@ -183,6 +228,7 @@ export function useVideoProcessor() {
           "-i", input,
           "-i", "overlay.png",
           "-filter_complex", filterComplex,
+          "-c:v", "libx264",
           "-c:a", "copy",
           output
         ]
@@ -208,12 +254,18 @@ export function useVideoProcessor() {
       png: "image/png",
       jpg: "image/jpeg",
       webp: "image/webp",
+      zip: "application/zip",
     }
     return mimeTypes[ext] || "application/octet-stream"
   }
 
   const process = useCallback(async (config: ActionConfig) => {
-    if (!ffmpeg || !isLoaded || !videoData) {
+    const isSingleFrameExtract = config.type === "frame-extract" && config.params.mode === "single"
+    if (!videoData) {
+      setError("No video is loaded yet. Please select a video first.")
+      return
+    }
+    if (!isSingleFrameExtract && (!ffmpeg || !isLoaded)) {
       setError("FFmpeg is not loaded yet. Please wait.")
       return
     }
@@ -225,15 +277,119 @@ export function useVideoProcessor() {
     setOutputUrl(null)
 
     try {
+      if (isSingleFrameExtract) {
+        const timestampSec = Math.max(0, Number.parseFloat(config.params.timestamp || "0"))
+        const format = config.params.format || "png"
+        const mimeType = getMimeType(format)
+        const sourceBlob = videoData.fileData
+          ? new Blob([videoData.fileData], { type: videoData.file.type || "video/mp4" })
+          : videoData.file
+        const objectUrl = URL.createObjectURL(sourceBlob)
+
+        try {
+          const video = document.createElement("video")
+          video.preload = "auto"
+          video.muted = true
+          video.src = objectUrl
+
+          await new Promise<void>((resolve, reject) => {
+            const onError = () => reject(new Error("Failed to load video data for frame extraction."))
+            video.addEventListener("loadedmetadata", () => resolve(), { once: true })
+            video.addEventListener("error", onError, { once: true })
+          })
+
+          const targetTime = Math.min(timestampSec, Math.max(0, (video.duration || timestampSec)))
+
+          await new Promise<void>((resolve, reject) => {
+            const onError = () => reject(new Error("Failed to seek video to the requested frame."))
+            const onSeeked = () => {
+              if ("requestVideoFrameCallback" in video) {
+                video.requestVideoFrameCallback(() => resolve())
+              } else {
+                resolve()
+              }
+            }
+            video.addEventListener("seeked", onSeeked, { once: true })
+            video.addEventListener("error", onError, { once: true })
+            video.currentTime = targetTime
+          })
+
+          const canvas = document.createElement("canvas")
+          canvas.width = video.videoWidth
+          canvas.height = video.videoHeight
+          const ctx = canvas.getContext("2d")
+          if (!ctx) {
+            throw new Error("Unable to render frame. Please try again.")
+          }
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+          const blob = await new Promise<Blob>((resolve, reject) => {
+            canvas.toBlob((result) => {
+              if (!result) {
+                reject(new Error("Failed to encode frame image."))
+                return
+              }
+              resolve(result)
+            }, mimeType)
+          })
+
+          const url = URL.createObjectURL(blob)
+          setOutputUrl(url)
+          setProgress(100)
+          setIsComplete(true)
+
+          const a = document.createElement("a")
+          a.href = url
+          a.download = `${videoData.file.name.replace(/\.[^/.]+$/, "")}_frame.${format}`
+          a.click()
+          return
+        } finally {
+          URL.revokeObjectURL(objectUrl)
+        }
+      }
+
       ffmpeg.on("progress", ({ progress: prog }) => {
         setProgress(Math.round(prog * 100))
       })
 
-      const arrayBuffer = await videoData.file.arrayBuffer()
-      const uint8Array = new Uint8Array(arrayBuffer)
+      let uint8Array: Uint8Array
+      try {
+        uint8Array = videoData.fileData
+          ? videoData.fileData
+          : new Uint8Array(await videoData.file.arrayBuffer())
+      } catch {
+        throw new Error("The selected video file is no longer accessible. Please re-select the file and try again.")
+      }
 
       const inputFileName = "input.mp4"
       await ffmpeg.writeFile(inputFileName, uint8Array)
+
+      if (config.type === "merge") {
+        const audioFile = config.params.audioFile as File | undefined
+        if (!audioFile) {
+          throw new Error("Select an audio file to merge before processing.")
+        }
+        const audioBuffer = new Uint8Array(await audioFile.arrayBuffer())
+        await ffmpeg.writeFile("audio.input", audioBuffer)
+      }
+
+      if (config.type === "combine") {
+        const clips = config.params.clips as File[] | undefined
+        if (!clips || clips.length < 2) {
+          throw new Error("Add at least two clips to combine before processing.")
+        }
+        const clipNames: string[] = []
+        for (let i = 0; i < clips.length; i += 1) {
+          const clip = clips[i]
+          const ext = clip.name.split(".").pop()
+          const clipName = `clip_${i}${ext ? `.${ext}` : ""}`
+          const clipBuffer = new Uint8Array(await clip.arrayBuffer())
+          await ffmpeg.writeFile(clipName, clipBuffer)
+          clipNames.push(clipName)
+        }
+        const listContents = clipNames.map((name) => `file '${name}'`).join("\n")
+        await ffmpeg.writeFile("concat.txt", new TextEncoder().encode(listContents))
+      }
 
       // Write overlay image file if present (for overlay operation)
       if (config.type === "overlay" && config.params.overlayFile) {
@@ -250,12 +406,35 @@ export function useVideoProcessor() {
       console.log("Running FFmpeg with args:", args)
       await ffmpeg.exec(args)
 
-      const outputData = await ffmpeg.readFile(outputFileName)
+      let url: string
+      if (config.type === "frame-extract" && config.params.mode !== "single") {
+        const format = config.params.format || "png"
+        const entries = await ffmpeg.listDir("/")
+        const frameFiles = entries
+          .filter((entry: { name: string; type?: string }) => entry.type === "file")
+          .map((entry: { name: string }) => entry.name)
+          .filter((name: string) => name.startsWith("frame_") && name.endsWith(`.${format}`))
+          .sort()
 
-      const mimeType = getMimeType(outputExt)
-      const blobData = outputData instanceof Uint8Array ? outputData.slice().buffer : outputData
-      const blob = new Blob([blobData], { type: mimeType })
-      const url = URL.createObjectURL(blob)
+        if (frameFiles.length === 0) {
+          throw new Error("No frames were generated. Try a larger interval or a different format.")
+        }
+
+        const zip = new JSZip()
+        for (const name of frameFiles) {
+          const data = await ffmpeg.readFile(name)
+          const blobData = data instanceof Uint8Array ? data.slice().buffer : data
+          zip.file(name, blobData)
+        }
+        const zipBlob = await zip.generateAsync({ type: "blob" })
+        url = URL.createObjectURL(zipBlob)
+      } else {
+        const outputData = await ffmpeg.readFile(outputFileName)
+        const mimeType = getMimeType(outputExt)
+        const blobData = outputData instanceof Uint8Array ? outputData.slice().buffer : outputData
+        const blob = new Blob([blobData], { type: mimeType })
+        url = URL.createObjectURL(blob)
+      }
 
       setOutputUrl(url)
       setProgress(100)
@@ -267,7 +446,6 @@ export function useVideoProcessor() {
       a.download = `${videoData.file.name.replace(/\.[^/.]+$/, "")}_${config.type}.${outputExt}`
       a.click()
     } catch (err) {
-      console.error("Processing error:", err)
       setError(`Error processing video: ${(err as Error).message}`)
     } finally {
       setIsProcessing(false)

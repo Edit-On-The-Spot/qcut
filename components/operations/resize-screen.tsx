@@ -147,6 +147,7 @@ export function ResizeScreen() {
             <p className="text-muted-foreground">
               New: {width} × {height}
             </p>
+            <p className="text-muted-foreground">Re-encoding required: resizing changes video frames.</p>
           </div>
 
           <ProcessingButton config={getActionConfig()} />

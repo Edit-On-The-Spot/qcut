@@ -26,6 +26,7 @@ export function ProcessingButton({ config, onReset }: ProcessingButtonProps) {
     resetProcessor,
     resetAll,
   } = useVideoProcessor()
+  const requiresFfmpeg = !(config.type === "frame-extract" && config.params.mode === "single")
 
   const handleProcess = () => {
     process(config)
@@ -102,10 +103,10 @@ export function ProcessingButton({ config, onReset }: ProcessingButtonProps) {
   return (
     <Button
       onClick={handleProcess}
-      disabled={!isLoaded}
+      disabled={requiresFfmpeg && !isLoaded}
       className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
     >
-      {isLoaded ? (
+      {isLoaded || !requiresFfmpeg ? (
         <>
           <Download className="w-4 h-4 mr-2" />
           Process & Download

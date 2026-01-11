@@ -10,6 +10,8 @@ import { useVideo, type ActionConfig } from "@/lib/video-context"
 import { ProcessingButton } from "@/components/processing-button"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
+import { useVideoFramerate } from "@/lib/use-video-framerate"
+import { snapTimeToFrame } from "@/lib/time-utils"
 
 /**
  * GIF screen for converting video segment to animated GIF.
@@ -27,6 +29,8 @@ export function GifScreen() {
   const [fps, setFps] = useState([10])
   const [scale, setScale] = useState([480])
   const [videoUrl, setVideoUrl] = useState<string>("")
+
+  const framerateFps = useVideoFramerate(videoRef)
 
   useEffect(() => {
     if (!videoData) return
@@ -66,25 +70,28 @@ export function GifScreen() {
     setIsPlaying(!isPlaying)
   }
 
+  const snapTime = (timeSec: number) => snapTimeToFrame(timeSec, framerateFps, duration)
+
   const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!videoRef.current) return
     const rect = e.currentTarget.getBoundingClientRect()
     const x = e.clientX - rect.left
     const percentage = x / rect.width
-    const time = percentage * duration
+    const time = snapTime(percentage * duration)
     videoRef.current.currentTime = time
     setCurrentTime(time)
   }
 
   const markStart = () => {
-    setStartTime(currentTime)
+    const time = snapTime(currentTime)
+    setStartTime(time)
     if (endTime === null) {
-      setEndTime(Math.min(currentTime + 3, duration))
+      setEndTime(Math.min(time + 3, duration))
     }
   }
 
   const markEnd = () => {
-    setEndTime(currentTime)
+    setEndTime(snapTime(currentTime))
   }
 
   const handleClearSelection = () => {
@@ -95,8 +102,8 @@ export function GifScreen() {
   const getActionConfig = (): ActionConfig => ({
     type: "gif",
     params: {
-      start: startTime !== null ? startTime.toFixed(2) : "0",
-      end: endTime !== null ? endTime.toFixed(2) : Math.min(duration, 3).toFixed(2),
+      start: startTime !== null ? snapTime(startTime).toFixed(2) : "0",
+      end: endTime !== null ? snapTime(endTime).toFixed(2) : Math.min(duration, 3).toFixed(2),
       fps: fps[0],
       scale: scale[0],
     },
@@ -217,6 +224,7 @@ export function GifScreen() {
               {startTime !== null && endTime !== null && (
                 <p className="text-muted-foreground">Duration: {formatTime(endTime - startTime)}</p>
               )}
+              <p className="text-muted-foreground">Re-encoding required: GIF export rebuilds frames.</p>
             </div>
           )}
 

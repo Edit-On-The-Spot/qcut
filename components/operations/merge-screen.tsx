@@ -30,8 +30,7 @@ export function MergeScreen() {
   const getActionConfig = (): ActionConfig => ({
     type: "merge",
     params: {
-      videoFile: videoData?.file.name,
-      audioFile: audioFile?.name,
+      audioFile,
     },
   })
 
@@ -119,6 +118,7 @@ export function MergeScreen() {
             The audio will replace any existing audio in the video. If the audio is longer or shorter than the video, it
             will be trimmed or extended accordingly.
           </p>
+          <p className="text-muted-foreground mt-2">Re-encoding required: audio must be re-encoded.</p>
         </div>
 
         {audioFile && <ProcessingButton config={getActionConfig()} onReset={() => setAudioFile(null)} />}

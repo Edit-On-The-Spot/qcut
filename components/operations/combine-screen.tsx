@@ -32,8 +32,7 @@ export function CombineScreen() {
   const getActionConfig = (): ActionConfig => ({
     type: "combine",
     params: {
-      clips: clips.map((c) => c.name),
-      count: clips.length,
+      clips,
     },
   })
 

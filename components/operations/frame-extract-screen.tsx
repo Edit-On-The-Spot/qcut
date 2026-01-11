@@ -11,6 +11,8 @@ import { ProcessingButton } from "@/components/processing-button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
+import { useVideoFramerate } from "@/lib/use-video-framerate"
+import { snapTimeToFrame } from "@/lib/time-utils"
 
 /**
  * Frame extract screen for extracting frames as images.
@@ -27,6 +29,8 @@ export function FrameExtractScreen() {
   const [interval, setIntervalValue] = useState("1")
   const [format, setFormat] = useState("png")
   const [videoUrl, setVideoUrl] = useState<string>("")
+
+  const framerateFps = useVideoFramerate(videoRef)
 
   useEffect(() => {
     if (!videoData) return
@@ -66,12 +70,14 @@ export function FrameExtractScreen() {
     setIsPlaying(!isPlaying)
   }
 
+  const snapTime = (timeSec: number) => snapTimeToFrame(timeSec, framerateFps, duration)
+
   const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!videoRef.current) return
     const rect = e.currentTarget.getBoundingClientRect()
     const x = e.clientX - rect.left
     const percentage = x / rect.width
-    const time = percentage * duration
+    const time = snapTime(percentage * duration)
     videoRef.current.currentTime = time
     setCurrentTime(time)
   }
@@ -81,6 +87,7 @@ export function FrameExtractScreen() {
     params: {
       mode: extractMode,
       interval: extractMode === "interval" ? interval : undefined,
+      timestamp: extractMode === "single" ? snapTime(currentTime).toFixed(3) : undefined,
       format,
     },
   })
@@ -99,6 +106,12 @@ export function FrameExtractScreen() {
   const estimatedFrames = () => {
     if (extractMode === "interval") {
       return Math.floor(duration / Number.parseFloat(interval || "1"))
+    }
+    if (extractMode === "single") {
+      return 1
+    }
+    if (extractMode === "all") {
+      return Math.floor(duration * framerateFps)
     }
     return "—"
   }
@@ -152,11 +165,19 @@ export function FrameExtractScreen() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="single">Single frame (current time)</SelectItem>
                   <SelectItem value="interval">Every N seconds</SelectItem>
                   <SelectItem value="all">All frames</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            {extractMode === "single" && (
+              <div className="space-y-2">
+                <Label>Current Frame</Label>
+                <p className="text-sm text-muted-foreground">This will extract the frame at the current timestamp.</p>
+              </div>
+            )}
 
             {extractMode === "interval" && (
               <div className="space-y-2">
