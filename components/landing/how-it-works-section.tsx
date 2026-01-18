@@ -25,7 +25,7 @@ const steps = [
 
 /**
  * How It Works section for the landing page.
- * Displays a 3-step process for using QCut.
+ * Displays a 3-step process for using Qcut.
  */
 export const HowItWorksSection = () => {
   return (

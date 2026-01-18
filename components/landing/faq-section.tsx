@@ -9,7 +9,7 @@ import {
 
 const faqs = [
   {
-    question: "Is QCut really free?",
+    question: "Is Qcut really free?",
     answer: "Yes. Free to use, no watermarks, no limits, no hidden premium tier.",
   },
   {
@@ -19,19 +19,19 @@ const faqs = [
   {
     question: "Are my videos private?",
     answer:
-      "Completely. QCut runs in your browser — your files never leave your device. We literally cannot access them.",
+      "Completely. Qcut runs in your browser — your files never leave your device. We literally cannot access them.",
   },
   {
-    question: "What formats does QCut support?",
+    question: "What formats does Qcut support?",
     answer: "Import: MP4, WebM, and most common video formats. Export: MP4, WebM, MP3, WAV.",
   },
   {
     question: "How is this free? What's the catch?",
-    answer: "No catch. QCut is a showcase of what modern browsers can do with WebAssembly and FFmpeg.",
+    answer: "No catch. Qcut is a showcase of what modern browsers can do with WebAssembly and FFmpeg.",
   },
   {
     question: "Does it work on mobile?",
-    answer: "Yes! QCut works in any modern browser — desktop, tablet, or phone.",
+    answer: "Yes! Qcut works in any modern browser — desktop, tablet, or phone.",
   },
   {
     question: "How fast is it?",
