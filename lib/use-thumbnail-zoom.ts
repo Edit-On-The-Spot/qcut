@@ -35,6 +35,8 @@ interface ThumbnailZoomResult {
   handleWheel: (event: WheelEvent) => void
   /** Set the center point for zooming (as percentage of video duration) */
   setZoomCenter: (percent: number) => void
+  /** Set the visible range directly for external control (e.g., panning, scrubber clicks) */
+  setVisibleRange: (startSec: number, durationSec: number) => void
 }
 
 /**
@@ -247,6 +249,17 @@ export function useThumbnailZoom(config: ThumbnailZoomConfig): ThumbnailZoomResu
     setVisibleStartSec(Math.max(0, Math.min(durationSec - clampedVisibleDurationSec, newStart)))
   }, [durationSec, clampedVisibleDurationSec])
 
+  /**
+   * Sets the visible range directly for external control (e.g., panning, scrubber clicks).
+   * @param startSec - Start time in seconds
+   * @param durationSec - Duration in seconds
+   */
+  const setVisibleRange = useCallback((startSec: number, durationSec: number) => {
+    hasZoomedRef.current = true
+    setVisibleStartSec(startSec)
+    setVisibleDurationSec(durationSec)
+  }, [])
+
   return {
     zoomLevel,
     visibleStartSec: clampedVisibleStartSec,
@@ -255,6 +268,7 @@ export function useThumbnailZoom(config: ThumbnailZoomConfig): ThumbnailZoomResu
     thumbnailCount,
     timestamps,
     handleWheel,
-    setZoomCenter
+    setZoomCenter,
+    setVisibleRange
   }
 }

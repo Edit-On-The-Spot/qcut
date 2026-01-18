@@ -11,7 +11,8 @@ import { ProcessingButton } from "@/components/processing-button"
 import { useVideoFramerate } from "@/lib/use-video-framerate"
 import { useFFmpegThumbnails } from "@/lib/use-ffmpeg-thumbnails"
 import { useThumbnailZoom } from "@/lib/use-thumbnail-zoom"
-import { snapTimeToFrame } from "@/lib/time-utils"
+import { snapTimeToFrame, timeToFrame } from "@/lib/time-utils"
+import { useMarkerDrag } from "@/lib/use-marker-drag"
 
 /**
  * Trim screen for cutting video segments.
@@ -26,10 +27,13 @@ export function TrimScreen() {
   const [isMuted, setIsMuted] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
-  const [startTime, setStartTime] = useState<number | null>(null)
-  const [endTime, setEndTime] = useState<number | null>(null)
+  const [startTime, setStartTime] = useState(0)
+  const [endTime, setEndTime] = useState(0)
   const [videoUrl, setVideoUrl] = useState<string>("")
   const [containerWidthPx, setContainerWidthPx] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
+  const [draggingMarkerType, setDraggingMarkerType] = useState<"start" | "end" | null>(null)
+  const [isPanning, setIsPanning] = useState(false)
 
   // Video framerate detection for zoom limits
   const framerateFps = useVideoFramerate(videoRef)
@@ -44,11 +48,71 @@ export function TrimScreen() {
     visibleStartSec,
     visibleDurationSec,
     timestamps,
-    handleWheel
+    handleWheel,
+    setZoomCenter,
+    setVisibleRange
   } = useThumbnailZoom({
     durationSec: duration,
     framerateFps,
     containerWidthPx
+  })
+
+  const visibleEndSec = visibleStartSec + visibleDurationSec
+
+  // Marker drag handlers for scrubber (full timeline 0-duration)
+  const {
+    handleStartMarkerMouseDown: handleScrubberStartDrag,
+    handleEndMarkerMouseDown: handleScrubberEndDrag,
+  } = useMarkerDrag({
+    videoRef,
+    framerate: framerateFps,
+    duration,
+    startTime,
+    endTime,
+    visibleStart: 0,
+    visibleEnd: duration,
+    containerWidth: containerWidthPx,
+    onStartChange: (time, frame) => {
+      console.log('[Scrubber Start Drag] New time:', time, 'frame:', frame)
+      setStartTime(time)
+    },
+    onEndChange: (time, frame) => {
+      console.log('[Scrubber End Drag] New time:', time, 'frame:', frame)
+      setEndTime(time)
+    },
+    onDragStateChange: (dragging, markerType) => {
+      console.log('[Scrubber Drag State]', dragging, markerType)
+      setIsDragging(dragging)
+      setDraggingMarkerType(markerType)
+    },
+  })
+
+  // Marker drag handlers for thumbnail strip (zoomed range)
+  const {
+    handleStartMarkerMouseDown: handleThumbnailStartDrag,
+    handleEndMarkerMouseDown: handleThumbnailEndDrag,
+  } = useMarkerDrag({
+    videoRef,
+    framerate: framerateFps,
+    duration,
+    startTime,
+    endTime,
+    visibleStart: visibleStartSec,
+    visibleEnd: visibleEndSec,
+    containerWidth: containerWidthPx,
+    onStartChange: (time, frame) => {
+      console.log('[Thumbnail Start Drag] New time:', time, 'frame:', frame)
+      setStartTime(time)
+    },
+    onEndChange: (time, frame) => {
+      console.log('[Thumbnail End Drag] New time:', time, 'frame:', frame)
+      setEndTime(time)
+    },
+    onDragStateChange: (dragging, markerType) => {
+      console.log('[Thumbnail Drag State]', dragging, markerType)
+      setIsDragging(dragging)
+      setDraggingMarkerType(markerType)
+    },
   })
 
   // Get cached thumbnails for current timestamps
@@ -60,6 +124,54 @@ export function TrimScreen() {
     setVideoUrl(url)
     return () => URL.revokeObjectURL(url)
   }, [videoData])
+
+  // Initialize endTime when duration is loaded
+  useEffect(() => {
+    if (duration > 0 && endTime === 0) {
+      setEndTime(duration)
+    }
+  }, [duration, endTime])
+
+  // Auto-scroll thumbnail strip during playback
+  useEffect(() => {
+    if (!isPlaying) return
+
+    const checkAutoScroll = () => {
+      if (currentTime < visibleStartSec || currentTime > visibleEndSec) {
+        // Playhead is outside visible range, center it
+        const percentage = currentTime / duration
+        setZoomCenter(percentage)
+      }
+    }
+
+    const interval = setInterval(checkAutoScroll, 100)
+    return () => clearInterval(interval)
+  }, [isPlaying, currentTime, visibleStartSec, visibleEndSec, duration, setZoomCenter])
+
+  // Arrow key navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target !== document.body) return // Only handle when not in an input
+
+      const panAmount = visibleDurationSec * 0.1 // 10% of visible range
+
+      switch (e.key) {
+        case 'ArrowLeft':
+          e.preventDefault()
+          const newStartLeft = Math.max(0, visibleStartSec - panAmount)
+          setVisibleRange(newStartLeft, visibleDurationSec)
+          break
+        case 'ArrowRight':
+          e.preventDefault()
+          const newStartRight = Math.min(duration - visibleDurationSec, visibleStartSec + panAmount)
+          setVisibleRange(newStartRight, visibleDurationSec)
+          break
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [visibleStartSec, visibleDurationSec, duration, setVisibleRange])
 
   // Measure container width for zoom calculations and attach non-passive wheel listener
   useEffect(() => {
@@ -147,6 +259,11 @@ export function TrimScreen() {
     const time = snapTime(percentage * duration)
     videoRef.current.currentTime = time
     setCurrentTime(time)
+
+    // Only pan thumbnail strip if clicked position is not already visible
+    if (time < visibleStartSec || time > visibleEndSec) {
+      setZoomCenter(percentage)
+    }
   }
 
   /**
@@ -160,25 +277,54 @@ export function TrimScreen() {
     setCurrentTime(time)
   }
 
-  const handleSplit = () => {
-    const time = snapTime(currentTime)
-    if (startTime === null) {
-      setStartTime(time)
-    } else if (endTime === null) {
-      setEndTime(time)
+  /**
+   * Handles panning the thumbnail strip by dragging anywhere on it.
+   */
+  const handleThumbnailPanStart = (e: React.MouseEvent) => {
+    // Don't pan if clicking on a marker (they have their own handlers)
+    const target = e.target as HTMLElement
+    if (target.classList.contains('cursor-ew-resize') || target.closest('.cursor-ew-resize')) {
+      return
     }
+
+    e.preventDefault()
+    setIsPanning(true)
+
+    const startX = e.clientX
+    const startVisibleTime = visibleStartSec
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = moveEvent.clientX - startX
+      const deltaTime = (deltaX / containerWidthPx) * visibleDurationSec
+
+      let newVisibleStart = startVisibleTime - deltaTime
+
+      // Constrain to video bounds
+      newVisibleStart = Math.max(0, Math.min(newVisibleStart, duration - visibleDurationSec))
+
+      setVisibleRange(newVisibleStart, visibleDurationSec)
+    }
+
+    const handleMouseUp = () => {
+      setIsPanning(false)
+      document.removeEventListener("mousemove", handleMouseMove)
+      document.removeEventListener("mouseup", handleMouseUp)
+    }
+
+    document.addEventListener("mousemove", handleMouseMove)
+    document.addEventListener("mouseup", handleMouseUp)
   }
 
   const handleClearSelection = () => {
-    setStartTime(null)
-    setEndTime(null)
+    setStartTime(0)
+    setEndTime(duration)
   }
 
   const getActionConfig = (): ActionConfig => ({
     type: "trim",
     params: {
-      start: startTime !== null ? snapTime(startTime).toFixed(2) : "0",
-      end: endTime !== null ? snapTime(endTime).toFixed(2) : duration.toFixed(2),
+      start: snapTime(startTime).toFixed(2),
+      end: snapTime(endTime).toFixed(2),
     },
   })
 
@@ -216,12 +362,12 @@ export function TrimScreen() {
    * Uses full video duration for positioning.
    */
   const getTimelineSelectionStyle = () => {
-    if (startTime === null || endTime === null) return {}
+    if (duration <= 0) return {}
     const start = (startTime / duration) * 100
     const end = (endTime / duration) * 100
     return {
-      left: `${start}%`,
-      width: `${end - start}%`,
+      left: `${Math.min(start, end)}%`,
+      width: `${Math.abs(end - start)}%`,
     }
   }
 
@@ -230,24 +376,23 @@ export function TrimScreen() {
    * Accounts for the visible range when zoomed.
    */
   const getThumbnailSelectionStyle = () => {
-    if (startTime === null || endTime === null || timestamps.length === 0) return {}
+    if (duration <= 0 || timestamps.length === 0) return {}
 
-    const visibleEndSec = visibleStartSec + (timestamps.length - 1) * (timestamps.length > 1 ? timestamps[1] - timestamps[0] : duration)
-    const visibleDuration = visibleEndSec - visibleStartSec
+    const actualVisibleDuration = visibleDurationSec > 0 ? visibleDurationSec : duration
 
-    if (visibleDuration <= 0) return {}
+    if (actualVisibleDuration <= 0) return {}
 
     // Calculate relative positions within the visible range
-    const relativeStart = Math.max(0, (startTime - visibleStartSec) / visibleDuration)
-    const relativeEnd = Math.min(1, (endTime - visibleStartSec) / visibleDuration)
+    const relativeStart = Math.max(0, (startTime - visibleStartSec) / actualVisibleDuration)
+    const relativeEnd = Math.min(1, (endTime - visibleStartSec) / actualVisibleDuration)
 
     if (relativeEnd <= 0 || relativeStart >= 1) {
       return { display: "none" } // Selection is outside visible range
     }
 
     return {
-      left: `${Math.max(0, relativeStart) * 100}%`,
-      width: `${(Math.min(1, relativeEnd) - Math.max(0, relativeStart)) * 100}%`,
+      left: `${Math.max(0, Math.min(relativeStart, relativeEnd)) * 100}%`,
+      width: `${Math.abs(relativeEnd - relativeStart) * 100}%`,
     }
   }
 
@@ -258,7 +403,7 @@ export function TrimScreen() {
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>
-        <Button variant="outline" onClick={handleClearSelection} disabled={startTime === null && endTime === null}>
+        <Button variant="outline" onClick={handleClearSelection}>
           Clear Selection
         </Button>
       </div>
@@ -275,37 +420,68 @@ export function TrimScreen() {
           <Button variant="outline" size="lg" className="w-12 h-12 rounded-full bg-transparent" onClick={toggleMute}>
             {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
           </Button>
-          <Button variant="outline" size="lg" className="gap-2 bg-transparent" onClick={handleSplit}>
+          <Button variant="outline" size="lg" className="gap-2 bg-transparent" onClick={() => {
+            const time = snapTime(currentTime)
+            setStartTime(time)
+          }}>
             <Scissors className="w-4 h-4" />
-            {startTime === null ? "Mark Start" : endTime === null ? "Mark End" : "Split"}
+            {startTime === 0 && endTime === duration ? "Mark Start" : "Update Start"}
+          </Button>
+          <Button variant="outline" size="lg" className="gap-2 bg-transparent" onClick={() => {
+            const time = snapTime(currentTime)
+            setEndTime(time)
+          }}>
+            <Scissors className="w-4 h-4" />
+            {startTime === 0 && endTime === duration ? "Mark End" : "Update End"}
           </Button>
         </div>
 
         <div className="space-y-2">
           <div className="relative h-1.5 bg-secondary rounded-full cursor-pointer group" onClick={handleTimelineClick}>
+            {/* Progress bar (behind viewport indicator) */}
             <div
-              className="absolute top-0 left-0 h-full bg-accent rounded-full transition-all"
+              className="absolute top-0 left-0 h-full bg-accent rounded-full transition-all z-0"
               style={{ width: `${(currentTime / duration) * 100}%` }}
             />
-            {startTime !== null && endTime !== null && (
-              <div className="absolute top-0 h-full bg-yellow-500/30 rounded-full" style={getTimelineSelectionStyle()} />
+            {/* Viewport indicator showing visible thumbnail range */}
+            {zoomLevel > 0.01 && duration > 0 && visibleDurationSec < duration && (
+              <div
+                className="absolute top-0 h-full bg-blue-500/20 border border-blue-500 rounded-full pointer-events-none z-5"
+                style={{
+                  left: `${Math.max(0, Math.min(100, (visibleStartSec / duration) * 100))}%`,
+                  width: `${Math.max(0, Math.min(100, (visibleDurationSec / duration) * 100))}%`,
+                }}
+              />
             )}
+            {/* Selection overlay */}
+            <div className="absolute top-0 h-full border-2 border-dashed border-yellow-400 opacity-50 rounded-full z-5" style={getTimelineSelectionStyle()} />
+            {/* Current time indicator */}
             <div
-              className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-accent rounded-full shadow-lg transition-all"
+              className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-accent rounded-full shadow-lg transition-all z-10"
               style={{ left: `${(currentTime / duration) * 100}%`, marginLeft: "-0.5rem" }}
             />
-            {startTime !== null && (
-              <div
-                className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-yellow-500 rounded-full shadow-lg"
-                style={{ left: `${(startTime / duration) * 100}%`, marginLeft: "-0.375rem" }}
-              />
-            )}
-            {endTime !== null && (
-              <div
-                className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-yellow-500 rounded-full shadow-lg"
-                style={{ left: `${(endTime / duration) * 100}%`, marginLeft: "-0.375rem" }}
-              />
-            )}
+            {/* Start marker (green, draggable) */}
+            <div
+              className={`absolute top-1/2 -translate-y-1/2 w-4 h-6 bg-green-500 border-2 border-white rounded shadow-lg cursor-ew-resize hover:scale-110 transition-transform z-20 ${
+                isDragging && draggingMarkerType === "start" ? "scale-125" : ""
+              }`}
+              style={{ left: `${(startTime / duration) * 100}%`, marginLeft: "-0.5rem" }}
+              onMouseDown={handleScrubberStartDrag}
+              title={`Start: ${formatTime(startTime)}`}
+            >
+              <div className="absolute inset-0 flex items-center justify-center text-[8px] text-white font-bold">S</div>
+            </div>
+            {/* End marker (red, draggable) */}
+            <div
+              className={`absolute top-1/2 -translate-y-1/2 w-4 h-6 bg-red-500 border-2 border-white rounded shadow-lg cursor-ew-resize hover:scale-110 transition-transform z-20 ${
+                isDragging && draggingMarkerType === "end" ? "scale-125" : ""
+              }`}
+              style={{ left: `${(endTime / duration) * 100}%`, marginLeft: "-0.5rem" }}
+              onMouseDown={handleScrubberEndDrag}
+              title={`End: ${formatTime(endTime)}`}
+            >
+              <div className="absolute inset-0 flex items-center justify-center text-[8px] text-white font-bold">E</div>
+            </div>
           </div>
           <div className="flex justify-between text-sm text-muted-foreground">
             <span>{formatTime(currentTime)}</span>
@@ -317,7 +493,8 @@ export function TrimScreen() {
         <div className="relative">
           <div
             ref={thumbnailContainerRef}
-            className="flex gap-1 pb-2"
+            className={`flex gap-1 pb-2 ${isPanning ? "cursor-grabbing" : "cursor-grab"}`}
+            onMouseDown={handleThumbnailPanStart}
           >
             {timestamps.map((timestamp) => {
               const thumb = thumbnailMap.get(timestamp)
@@ -347,47 +524,62 @@ export function TrimScreen() {
               )
             })}
           </div>
-          {startTime !== null && endTime !== null && (
+          {/* Selection overlay on thumbnail strip - no side borders */}
+          <div
+            className="absolute top-0 h-24 border-t-2 border-b-2 border-dashed border-yellow-400 bg-yellow-500/20 pointer-events-none"
+            style={getThumbnailSelectionStyle()}
+          />
+          {/* Start marker on thumbnail strip (green, draggable) */}
+          {duration > 0 && startTime >= visibleStartSec && startTime <= visibleEndSec && (
             <div
-              className="absolute top-0 h-24 border-2 border-yellow-500 rounded pointer-events-none"
-              style={getThumbnailSelectionStyle()}
+              className={`absolute top-0 w-4 h-24 bg-green-500 border-2 border-white shadow-lg cursor-ew-resize hover:scale-110 transition-transform z-30 ${
+                isDragging && draggingMarkerType === "start" ? "scale-125" : ""
+              }`}
+              style={{
+                left: `${((startTime - visibleStartSec) / (visibleDurationSec || duration)) * 100}%`,
+                marginLeft: "-0.5rem"
+              }}
+              onMouseDown={handleThumbnailStartDrag}
+              title={`Start: ${formatTime(startTime)}`}
             >
-              <button
-                className="absolute -right-3 -top-3 w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center text-background cursor-pointer pointer-events-auto"
-                onClick={handleClearSelection}
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <div className="absolute inset-0 flex items-center justify-center text-[10px] text-white font-bold">S</div>
             </div>
           )}
-          {/* Timeline position indicator - shows where visible thumbnails are within full video */}
-          {zoomLevel > 0 && duration > 0 && (
-            <div className="mt-1 h-1.5 bg-secondary rounded-full relative">
-              <div
-                className="absolute h-full bg-muted-foreground/50 rounded-full"
-                style={{
-                  left: `${(visibleStartSec / duration) * 100}%`,
-                  width: `${(visibleDurationSec / duration) * 100}%`,
-                }}
-              />
+          {/* End marker on thumbnail strip (red, draggable) */}
+          {duration > 0 && endTime >= visibleStartSec && endTime <= visibleEndSec && (
+            <div
+              className={`absolute top-0 w-4 h-24 bg-red-500 border-2 border-white shadow-lg cursor-ew-resize hover:scale-110 transition-transform z-30 ${
+                isDragging && draggingMarkerType === "end" ? "scale-125" : ""
+              }`}
+              style={{
+                left: `${((endTime - visibleStartSec) / (visibleDurationSec || duration)) * 100}%`,
+                marginLeft: "-0.5rem"
+              }}
+              onMouseDown={handleThumbnailEndDrag}
+              title={`End: ${formatTime(endTime)}`}
+            >
+              <div className="absolute inset-0 flex items-center justify-center text-[10px] text-white font-bold">E</div>
             </div>
           )}
         </div>
 
-        {(startTime !== null || endTime !== null) && (
+        {duration > 0 && (
           <div className="bg-secondary/50 rounded-lg p-4">
             <div className="text-sm space-y-1">
               <p className="text-muted-foreground">Selection:</p>
               <div className="flex gap-4">
-                <span>Start: {startTime !== null ? formatTime(startTime) : "—"}</span>
-                <span>End: {endTime !== null ? formatTime(endTime) : "—"}</span>
-                {startTime !== null && endTime !== null && <span>Duration: {formatTime(endTime - startTime)}</span>}
+                <span>Start: {formatTime(startTime)}</span>
+                <span>End: {formatTime(endTime)}</span>
+                <span>Duration: {formatTime(Math.abs(endTime - startTime))}</span>
               </div>
+              {startTime === endTime && (
+                <p className="text-yellow-600 text-xs mt-2">⚠ Single frame selected</p>
+              )}
             </div>
           </div>
         )}
 
-        {startTime !== null && endTime !== null && (
+        {duration > 0 && (
           <ProcessingButton
             config={getActionConfig()}
             onReset={handleClearSelection}
