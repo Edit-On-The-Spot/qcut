@@ -72,16 +72,13 @@ export function TrimScreen() {
     visibleStart: 0,
     visibleEnd: duration,
     containerWidth: containerWidthPx,
-    onStartChange: (time, frame) => {
-      console.log('[Scrubber Start Drag] New time:', time, 'frame:', frame)
+    onStartChange: (time) => {
       setStartTime(time)
     },
-    onEndChange: (time, frame) => {
-      console.log('[Scrubber End Drag] New time:', time, 'frame:', frame)
+    onEndChange: (time) => {
       setEndTime(time)
     },
     onDragStateChange: (dragging, markerType) => {
-      console.log('[Scrubber Drag State]', dragging, markerType)
       setIsDragging(dragging)
       setDraggingMarkerType(markerType)
     },
@@ -100,16 +97,13 @@ export function TrimScreen() {
     visibleStart: visibleStartSec,
     visibleEnd: visibleEndSec,
     containerWidth: containerWidthPx,
-    onStartChange: (time, frame) => {
-      console.log('[Thumbnail Start Drag] New time:', time, 'frame:', frame)
+    onStartChange: (time) => {
       setStartTime(time)
     },
-    onEndChange: (time, frame) => {
-      console.log('[Thumbnail End Drag] New time:', time, 'frame:', frame)
+    onEndChange: (time) => {
       setEndTime(time)
     },
     onDragStateChange: (dragging, markerType) => {
-      console.log('[Thumbnail Drag State]', dragging, markerType)
       setIsDragging(dragging)
       setDraggingMarkerType(markerType)
     },
