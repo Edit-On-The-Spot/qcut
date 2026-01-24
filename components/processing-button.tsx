@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect } from "react"
 import { Download, RotateCcw, CheckCircle2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { type ActionConfig } from "@/lib/video-context"
@@ -13,6 +14,7 @@ interface ProcessingButtonProps {
 /**
  * Button component that handles video processing and download.
  * Shows loading state during processing and download/reset options when complete.
+ * Warns user before navigating away during processing to prevent data loss.
  */
 export function ProcessingButton({ config, onReset }: ProcessingButtonProps) {
   const {
@@ -27,6 +29,23 @@ export function ProcessingButton({ config, onReset }: ProcessingButtonProps) {
     resetAll,
   } = useVideoProcessor()
   const requiresFfmpeg = !(config.type === "frame-extract" && config.params.mode === "single")
+
+  // Warn user before navigating away during processing to prevent losing work
+  useEffect(() => {
+    if (!isProcessing) return
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      // Modern browsers ignore custom messages, but we still need to set returnValue
+      return "Video processing is in progress. Are you sure you want to leave?"
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload)
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload)
+    }
+  }, [isProcessing])
 
   const handleProcess = () => {
     process(config)
