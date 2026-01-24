@@ -152,8 +152,14 @@ export function OverlayScreen() {
     return (bytes / (1024 * 1024)).toFixed(2) + " MB"
   }
 
+  // Redirect to home if no video is loaded
+  useEffect(() => {
+    if (!videoData) {
+      router.push("/")
+    }
+  }, [videoData, router])
+
   if (!videoData) {
-    router.push("/")
     return null
   }
 

@@ -89,8 +89,14 @@ export function RotateScreen() {
 
   const hasTransformation = rotation !== 0 || isFlipHorizontal || isFlipVertical
 
+  // Redirect to home if no video is loaded
+  useEffect(() => {
+    if (!videoData) {
+      router.push("/")
+    }
+  }, [videoData, router])
+
   if (!videoData) {
-    router.push("/")
     return null
   }
 

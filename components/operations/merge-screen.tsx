@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Upload } from "lucide-react"
@@ -27,6 +27,13 @@ export function MergeScreen() {
     }
   }
 
+  // Redirect to home if no video is loaded
+  useEffect(() => {
+    if (!videoData) {
+      router.push("/")
+    }
+  }, [videoData, router])
+
   const getActionConfig = (): ActionConfig => ({
     type: "merge",
     params: {
@@ -35,7 +42,6 @@ export function MergeScreen() {
   })
 
   if (!videoData) {
-    router.push("/")
     return null
   }
 

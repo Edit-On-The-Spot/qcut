@@ -82,6 +82,13 @@ export function FrameExtractScreen() {
     setCurrentTime(time)
   }
 
+  // Redirect to home if no video is loaded
+  useEffect(() => {
+    if (!videoData) {
+      router.push("/")
+    }
+  }, [videoData, router])
+
   const getActionConfig = (): ActionConfig => ({
     type: "frame-extract",
     params: {
@@ -93,7 +100,6 @@ export function FrameExtractScreen() {
   })
 
   if (!videoData) {
-    router.push("/")
     return null
   }
 

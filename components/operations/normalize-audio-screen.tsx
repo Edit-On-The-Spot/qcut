@@ -40,6 +40,13 @@ export function NormalizeAudioScreen() {
     setIsPlaying(!isPlaying)
   }
 
+  // Redirect to home if no video is loaded
+  useEffect(() => {
+    if (!videoData) {
+      router.push("/")
+    }
+  }, [videoData, router])
+
   const getActionConfig = (): ActionConfig => ({
     type: "normalize-audio",
     params: {
@@ -50,7 +57,6 @@ export function NormalizeAudioScreen() {
   })
 
   if (!videoData) {
-    router.push("/")
     return null
   }
 

@@ -39,13 +39,19 @@ export function ConvertScreen() {
     setIsPlaying(!isPlaying)
   }
 
+  // Redirect to home if no video is loaded
+  useEffect(() => {
+    if (!videoData) {
+      router.push("/")
+    }
+  }, [videoData, router])
+
   const getActionConfig = (): ActionConfig => ({
     type: "convert",
     params: { format, codec },
   })
 
   if (!videoData) {
-    router.push("/")
     return null
   }
 

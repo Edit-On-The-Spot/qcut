@@ -314,6 +314,13 @@ export function TrimScreen() {
     setEndTime(duration)
   }
 
+  // Redirect to home if no video is loaded
+  useEffect(() => {
+    if (!videoData) {
+      router.push("/")
+    }
+  }, [videoData, router])
+
   const getActionConfig = (): ActionConfig => ({
     type: "trim",
     params: {
@@ -323,7 +330,6 @@ export function TrimScreen() {
   })
 
   if (!videoData) {
-    router.push("/")
     return null
   }
 

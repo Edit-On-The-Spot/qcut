@@ -41,6 +41,13 @@ export function ExtractAudioScreen() {
     setIsPlaying(!isPlaying)
   }
 
+  // Redirect to home if no video is loaded
+  useEffect(() => {
+    if (!videoData) {
+      router.push("/")
+    }
+  }, [videoData, router])
+
   const getActionConfig = (): ActionConfig => ({
     type: "extract-audio",
     params: {
@@ -52,7 +59,6 @@ export function ExtractAudioScreen() {
   })
 
   if (!videoData) {
-    router.push("/")
     return null
   }
 

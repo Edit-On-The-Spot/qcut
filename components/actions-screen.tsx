@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import {
   Repeat,
@@ -114,12 +115,20 @@ export function ActionsScreen() {
   const router = useRouter()
   const { videoData } = useVideo()
 
+  // Redirect to home if no video is loaded, using useEffect to avoid
+  // race conditions with state updates during navigation
+  useEffect(() => {
+    if (!videoData) {
+      router.push("/")
+    }
+  }, [videoData, router])
+
   const handleActionClick = (type: ActionType) => {
     router.push(`/${type}`)
   }
 
+  // Show nothing while checking for video data to avoid flash of content
   if (!videoData) {
-    router.push("/")
     return null
   }
 

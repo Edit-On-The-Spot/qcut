@@ -40,13 +40,19 @@ export function CompressScreen() {
     setIsPlaying(!isPlaying)
   }
 
+  // Redirect to home if no video is loaded
+  useEffect(() => {
+    if (!videoData) {
+      router.push("/")
+    }
+  }, [videoData, router])
+
   const getActionConfig = (): ActionConfig => ({
     type: "compress",
     params: { crf: quality[0], preset },
   })
 
   if (!videoData) {
-    router.push("/")
     return null
   }
 

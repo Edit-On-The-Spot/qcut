@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Plus, X, GripVertical } from "lucide-react"
@@ -29,6 +29,13 @@ export function CombineScreen() {
     setClips(clips.filter((_, i) => i !== index))
   }
 
+  // Redirect to home if no video is loaded
+  useEffect(() => {
+    if (!videoData) {
+      router.push("/")
+    }
+  }, [videoData, router])
+
   const getActionConfig = (): ActionConfig => ({
     type: "combine",
     params: {
@@ -37,7 +44,6 @@ export function CombineScreen() {
   })
 
   if (!videoData) {
-    router.push("/")
     return null
   }
 

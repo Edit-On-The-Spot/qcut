@@ -29,8 +29,14 @@ export function ExportScreen() {
     }
   }, [videoData, actionConfig])
 
+  // Redirect to home if no video is loaded
+  useEffect(() => {
+    if (!videoData || !actionConfig) {
+      router.push("/")
+    }
+  }, [videoData, actionConfig, router])
+
   if (!videoData || !actionConfig) {
-    router.push("/")
     return null
   }
 

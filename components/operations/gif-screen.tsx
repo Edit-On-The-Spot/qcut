@@ -99,6 +99,13 @@ export function GifScreen() {
     setEndTime(null)
   }
 
+  // Redirect to home if no video is loaded
+  useEffect(() => {
+    if (!videoData) {
+      router.push("/")
+    }
+  }, [videoData, router])
+
   const getActionConfig = (): ActionConfig => ({
     type: "gif",
     params: {
@@ -110,7 +117,6 @@ export function GifScreen() {
   })
 
   if (!videoData) {
-    router.push("/")
     return null
   }
 
