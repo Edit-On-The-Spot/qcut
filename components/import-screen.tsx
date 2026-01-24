@@ -141,7 +141,7 @@ export function ImportScreen() {
           setPendingAction(null)
         }}
         onFileSelect={handleModalFileSelect}
-        title={pendingAction ? `Select video for ${pendingAction.replace("-", " ")}` : "Select a video"}
+        title={pendingAction ? `Select video to ${pendingAction.replace("-", " ")}` : "Select a video"}
       />
     </div>
   )
