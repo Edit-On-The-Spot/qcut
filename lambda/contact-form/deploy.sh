@@ -115,7 +115,7 @@ EOF
         --timeout 30 \
         --memory-size 256 \
         --region $REGION \
-        --environment Variables="{FROM_EMAIL=$FROM_EMAIL,TO_EMAIL=$TO_EMAIL,AWS_REGION=$REGION}"
+        --environment Variables="{FROM_EMAIL=$FROM_EMAIL,TO_EMAIL=$TO_EMAIL}"
 
     echo -e "${GREEN}Lambda function created successfully!${NC}"
 

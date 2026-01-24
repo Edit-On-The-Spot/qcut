@@ -28,3 +28,18 @@ Continue building your app on:
 2. Deploy your chats from the v0 interface
 3. Changes are automatically pushed to this repository
 4. Vercel deploys the latest version from this repository
+
+## Contact Form
+
+The application includes a contact form at `/contact` that sends emails to `support@editonthespot.com`. The contact form uses a serverless AWS Lambda function to send emails via AWS SES.
+
+### Setup
+
+1. Deploy the Lambda function (see `lambda/contact-form/README.md` for detailed instructions)
+2. Create an API Gateway endpoint pointing to the Lambda function
+3. Create a `.env.local` file with the API Gateway URL:
+   ```
+   NEXT_PUBLIC_CONTACT_API_URL=https://your-api-id.execute-api.us-east-1.amazonaws.com/prod/contact
+   ```
+
+For full deployment instructions, see `lambda/contact-form/README.md`.

@@ -29,7 +29,7 @@ export const QcutFooter = () => {
             <a href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Privacy
             </a>
-            <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <a href="/contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Contact
             </a>
             <div className="flex items-center gap-4 ml-4">
