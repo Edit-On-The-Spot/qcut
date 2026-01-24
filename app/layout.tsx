@@ -17,7 +17,7 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: "qcut.app - Swiss Army Knife Video Editor",
+  title: "qcut.app - Lightning-fast in-browser video editor",
   description: "Simple, powerful video editing powered by FFmpeg",
   generator: "v0.app",
   manifest: "/manifest.json",
