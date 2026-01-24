@@ -86,7 +86,7 @@ export function useFFmpeg() {
     if (isLoaded || ffmpeg) return
 
     try {
-      setMessage("Loading FFmpeg...")
+      setMessage("Loading Qcut...")
       const ffmpegInstance = new FFmpeg()
 
       ffmpegInstance.on("log", ({ message: logMessage }) => {

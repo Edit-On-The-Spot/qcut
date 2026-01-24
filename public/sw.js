@@ -4,7 +4,7 @@
  * Pages are cached on-demand as users navigate to them.
  */
 
-const CACHE_NAME = 'qcut-v3';
+const CACHE_NAME = 'qcut-v4';
 
 // Core assets to cache immediately on install (must exist and return 200)
 const CORE_ASSETS = [
@@ -45,7 +45,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate event - clean up old caches
+// Activate event - clean up old caches and notify clients to reload
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -54,6 +54,13 @@ self.addEventListener('activate', (event) => {
           .filter((name) => name !== CACHE_NAME)
           .map((name) => caches.delete(name))
       );
+    }).then(() => {
+      // Notify all clients that a new version is active
+      return self.clients.matchAll({ type: 'window' }).then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({ type: 'SW_UPDATED' });
+        });
+      });
     })
   );
   // Take control of all clients immediately

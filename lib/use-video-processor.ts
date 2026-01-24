@@ -285,11 +285,10 @@ export function useVideoProcessor() {
         const mimeType = getMimeType(format)
         console.log("[FrameExtract] Target timestamp:", timestampSec, "format:", format)
 
-        const sourceBlob = videoData.fileData
-          ? new Blob([videoData.fileData], { type: videoData.file.type || "video/mp4" })
-          : videoData.file
-        console.log("[FrameExtract] Source blob size:", sourceBlob.size, "bytes")
-        const objectUrl = URL.createObjectURL(sourceBlob)
+        // Always use the original File object directly to avoid 2GB ArrayBuffer limit
+        // The File object is a Blob subclass that browsers can handle efficiently
+        console.log("[FrameExtract] Source file size:", videoData.file.size, "bytes")
+        const objectUrl = URL.createObjectURL(videoData.file)
         console.log("[FrameExtract] Created object URL")
 
         try {
@@ -336,16 +335,35 @@ export function useVideoProcessor() {
             const onSeeked = () => {
               clearTimeout(timeoutId)
               console.log("[FrameExtract] Seeked event fired in", (performance.now() - seekStartMs).toFixed(0), "ms")
+              // requestVideoFrameCallback can hang on paused videos - use short timeout fallback
+              // The seeked event already ensures we're at the correct frame
+              const frameCallbackStartMs = performance.now()
+              let frameCallbackResolved = false
+
+              const resolveOnce = () => {
+                if (frameCallbackResolved) return
+                frameCallbackResolved = true
+                console.log("[FrameExtract] Frame ready in", (performance.now() - frameCallbackStartMs).toFixed(0), "ms")
+                resolve()
+              }
+
+              // Fallback timeout of 500ms - if requestVideoFrameCallback doesn't fire, proceed anyway
+              const fallbackTimeout = setTimeout(() => {
+                console.log("[FrameExtract] Using fallback timeout (requestVideoFrameCallback didn't fire)")
+                resolveOnce()
+              }, 500)
+
               if ("requestVideoFrameCallback" in video) {
                 console.log("[FrameExtract] Waiting for video frame callback...")
-                const frameCallbackStartMs = performance.now()
                 video.requestVideoFrameCallback(() => {
-                  console.log("[FrameExtract] Frame callback fired in", (performance.now() - frameCallbackStartMs).toFixed(0), "ms")
-                  resolve()
+                  clearTimeout(fallbackTimeout)
+                  console.log("[FrameExtract] Frame callback fired")
+                  resolveOnce()
                 })
               } else {
+                clearTimeout(fallbackTimeout)
                 console.log("[FrameExtract] No requestVideoFrameCallback, resolving immediately")
-                resolve()
+                resolveOnce()
               }
             }
             video.addEventListener("seeked", onSeeked, { once: true })

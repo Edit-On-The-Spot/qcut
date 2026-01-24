@@ -1,5 +1,6 @@
 import { Github, Twitter } from "lucide-react"
 import Image from "next/image"
+import Link from "next/link"
 
 /**
  * Footer section for the landing page.
@@ -23,15 +24,15 @@ export const QcutFooter = () => {
 
           {/* Links */}
           <div className="flex items-center gap-6">
-            <a href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Terms
-            </a>
-            <a href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            </Link>
+            <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Privacy
-            </a>
-            <a href="/contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            </Link>
+            <Link href="/contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Contact
-            </a>
+            </Link>
             <div className="flex items-center gap-4 ml-4">
               <a href="#" className="text-muted-foreground hover:text-foreground transition-colors" aria-label="GitHub">
                 <Github className="h-5 w-5" />

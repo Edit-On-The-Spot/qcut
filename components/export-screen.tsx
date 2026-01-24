@@ -243,7 +243,7 @@ export function ExportScreen() {
         <Card className="p-6">
           <div className="flex items-center gap-3">
             <Loader2 className="w-5 h-5 animate-spin text-accent" />
-            <span className="text-sm">{ffmpegMessage || "Loading FFmpeg..."}</span>
+            <span className="text-sm">{ffmpegMessage || "Loading Qcut..."}</span>
           </div>
         </Card>
       )}
@@ -275,7 +275,7 @@ export function ExportScreen() {
               disabled={!isLoaded}
               className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
             >
-              {isLoaded ? "Start Processing" : "Loading FFmpeg..."}
+              {isLoaded ? "Start Processing" : "Loading Qcut..."}
             </Button>
           </div>
         )}

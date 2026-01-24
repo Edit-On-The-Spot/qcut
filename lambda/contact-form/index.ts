@@ -1,6 +1,7 @@
 import { SES } from "@aws-sdk/client-ses";
 
-const ses = new SES({ region: process.env.AWS_REGION || "us-east-1" });
+// Use us-west-2 for SES since that's where the verified identity is configured
+const ses = new SES({ region: process.env.SES_REGION || "us-west-2" });
 
 interface ContactFormData {
   name: string;

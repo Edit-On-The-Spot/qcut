@@ -314,12 +314,21 @@ export function TrimScreen() {
     setEndTime(duration)
   }
 
-  // Redirect to home if no video is loaded
+  // Track mount state to avoid redirect race conditions
+  const [isMounted, setIsMounted] = useState(false)
   useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  // Redirect to home if no video is loaded (only after mount to avoid race conditions)
+  useEffect(() => {
+    if (!isMounted) return
+    console.log("[TrimScreen] videoData check:", videoData ? "loaded" : "null")
     if (!videoData) {
+      console.log("[TrimScreen] No video data, redirecting to home")
       router.push("/")
     }
-  }, [videoData, router])
+  }, [videoData, router, isMounted])
 
   const getActionConfig = (): ActionConfig => ({
     type: "trim",
@@ -330,7 +339,12 @@ export function TrimScreen() {
   })
 
   if (!videoData) {
-    return null
+    // Show loading state briefly while redirect happens or atoms settle
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    )
   }
 
   /**
