@@ -1,7 +1,6 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
-import { Analytics } from "@vercel/analytics/next"
 import { Header } from "@/components/header"
 import { FFmpegLoader } from "@/components/ffmpeg-loader"
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration"
@@ -50,7 +49,6 @@ export default function RootLayout({
         <FFmpegLoader />
         <Header />
         {children}
-        <Analytics />
       </body>
     </html>
   )
