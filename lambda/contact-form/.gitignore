@@ -1,0 +1,6 @@
+node_modules/
+index.js
+function.zip
+trust-policy.json
+ses-policy.json
+response.json
