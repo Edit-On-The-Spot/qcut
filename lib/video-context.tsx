@@ -50,6 +50,12 @@ export const ffmpegMessageAtom = atom<string>("")
 /** Atom caching generated thumbnails by timestamp key (videoName:timestampMs -> dataUrl) */
 export const thumbnailCacheAtom = atom<Map<string, string>>(new Map())
 
+/** Atom tracking whether video processing is in progress */
+export const isProcessingAtom = atom<boolean>(false)
+
+/** Atom storing abort controller for cancelling processing */
+export const processingAbortControllerAtom = atom<AbortController | null>(null)
+
 /**
  * Hook to access video editing state.
  * Uses Jotai atoms for state management across routes.
@@ -100,4 +106,62 @@ export function useFFmpeg() {
   }
 
   return { ffmpeg, isLoaded, message, load }
+}
+
+/**
+ * Hook to access global processing state.
+ * Used to track if processing is in progress and to cancel it.
+ */
+export function useProcessingState() {
+  const [isProcessing, setIsProcessing] = useAtom(isProcessingAtom)
+  const [abortController, setAbortController] = useAtom(processingAbortControllerAtom)
+  const [ffmpeg] = useAtom(ffmpegAtom)
+
+  /**
+   * Starts processing and creates an abort controller.
+   * @returns The abort signal to pass to async operations
+   */
+  const startProcessing = () => {
+    const controller = new AbortController()
+    setAbortController(controller)
+    setIsProcessing(true)
+    return controller.signal
+  }
+
+  /**
+   * Stops processing and terminates FFmpeg if running.
+   * Call this when navigating away or user cancels.
+   */
+  const cancelProcessing = async () => {
+    console.log("[Processing] Cancelling processing...")
+    if (abortController) {
+      abortController.abort()
+      setAbortController(null)
+    }
+    if (ffmpeg) {
+      try {
+        // Terminate will stop any running FFmpeg operation
+        ffmpeg.terminate()
+        console.log("[Processing] FFmpeg terminated")
+      } catch (err) {
+        console.warn("[Processing] Error terminating FFmpeg:", err)
+      }
+    }
+    setIsProcessing(false)
+  }
+
+  /**
+   * Marks processing as complete.
+   */
+  const finishProcessing = () => {
+    setAbortController(null)
+    setIsProcessing(false)
+  }
+
+  return {
+    isProcessing,
+    startProcessing,
+    cancelProcessing,
+    finishProcessing,
+  }
 }

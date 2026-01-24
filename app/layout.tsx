@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google"
 import { Header } from "@/components/header"
 import { FFmpegLoader } from "@/components/ffmpeg-loader"
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration"
+import { NavigationGuard } from "@/components/navigation-guard"
 import "./globals.css"
 
 const _geist = Geist({ subsets: ["latin"] })
@@ -47,6 +48,7 @@ export default function RootLayout({
       <body className={`font-sans antialiased`}>
         <ServiceWorkerRegistration />
         <FFmpegLoader />
+        <NavigationGuard />
         <Header />
         {children}
       </body>

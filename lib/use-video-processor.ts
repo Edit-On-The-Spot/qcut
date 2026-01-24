@@ -2,16 +2,17 @@
 
 import { useState, useCallback } from "react"
 import JSZip from "jszip"
-import { useFFmpeg, useVideo, type ActionConfig } from "./video-context"
+import { useFFmpeg, useVideo, useProcessingState, type ActionConfig } from "./video-context"
 
 /**
  * Hook for processing video with FFmpeg.
  * Returns processing state and functions to process and download.
+ * Uses global processing state to enable navigation guards.
  */
 export function useVideoProcessor() {
   const { ffmpeg, isLoaded } = useFFmpeg()
   const { videoData, reset } = useVideo()
-  const [isProcessing, setIsProcessing] = useState(false)
+  const { isProcessing, startProcessing, finishProcessing } = useProcessingState()
   const [isComplete, setIsComplete] = useState(false)
   const [progress, setProgress] = useState(0)
   const [outputUrl, setOutputUrl] = useState<string | null>(null)
@@ -270,7 +271,7 @@ export function useVideoProcessor() {
       return
     }
 
-    setIsProcessing(true)
+    startProcessing()
     setProgress(0)
     setError(null)
     setIsComplete(false)
@@ -278,34 +279,72 @@ export function useVideoProcessor() {
 
     try {
       if (isSingleFrameExtract) {
+        console.log("[FrameExtract] Starting single frame extraction")
         const timestampSec = Math.max(0, Number.parseFloat(config.params.timestamp || "0"))
         const format = config.params.format || "png"
         const mimeType = getMimeType(format)
+        console.log("[FrameExtract] Target timestamp:", timestampSec, "format:", format)
+
         const sourceBlob = videoData.fileData
           ? new Blob([videoData.fileData], { type: videoData.file.type || "video/mp4" })
           : videoData.file
+        console.log("[FrameExtract] Source blob size:", sourceBlob.size, "bytes")
         const objectUrl = URL.createObjectURL(sourceBlob)
+        console.log("[FrameExtract] Created object URL")
 
         try {
           const video = document.createElement("video")
           video.preload = "auto"
           video.muted = true
           video.src = objectUrl
+          console.log("[FrameExtract] Created video element, waiting for metadata...")
 
+          const metadataStartMs = performance.now()
           await new Promise<void>((resolve, reject) => {
-            const onError = () => reject(new Error("Failed to load video data for frame extraction."))
-            video.addEventListener("loadedmetadata", () => resolve(), { once: true })
+            const timeoutId = setTimeout(() => {
+              console.error("[FrameExtract] Timeout waiting for metadata after 30s")
+              reject(new Error("Timeout waiting for video metadata. The video may be corrupted or too large."))
+            }, 30000)
+            const onError = () => {
+              clearTimeout(timeoutId)
+              console.error("[FrameExtract] Error loading video metadata")
+              reject(new Error("Failed to load video data for frame extraction."))
+            }
+            video.addEventListener("loadedmetadata", () => {
+              clearTimeout(timeoutId)
+              console.log("[FrameExtract] Metadata loaded in", (performance.now() - metadataStartMs).toFixed(0), "ms")
+              resolve()
+            }, { once: true })
             video.addEventListener("error", onError, { once: true })
           })
 
+          console.log("[FrameExtract] Video duration:", video.duration, "dimensions:", video.videoWidth, "x", video.videoHeight)
           const targetTime = Math.min(timestampSec, Math.max(0, (video.duration || timestampSec)))
+          console.log("[FrameExtract] Seeking to:", targetTime, "seconds")
 
+          const seekStartMs = performance.now()
           await new Promise<void>((resolve, reject) => {
-            const onError = () => reject(new Error("Failed to seek video to the requested frame."))
+            const timeoutId = setTimeout(() => {
+              console.error("[FrameExtract] Timeout seeking after 60s, currentTime:", video.currentTime)
+              reject(new Error("Timeout seeking to requested frame. Try a frame closer to the start of the video."))
+            }, 60000)
+            const onError = () => {
+              clearTimeout(timeoutId)
+              console.error("[FrameExtract] Error seeking")
+              reject(new Error("Failed to seek video to the requested frame."))
+            }
             const onSeeked = () => {
+              clearTimeout(timeoutId)
+              console.log("[FrameExtract] Seeked event fired in", (performance.now() - seekStartMs).toFixed(0), "ms")
               if ("requestVideoFrameCallback" in video) {
-                video.requestVideoFrameCallback(() => resolve())
+                console.log("[FrameExtract] Waiting for video frame callback...")
+                const frameCallbackStartMs = performance.now()
+                video.requestVideoFrameCallback(() => {
+                  console.log("[FrameExtract] Frame callback fired in", (performance.now() - frameCallbackStartMs).toFixed(0), "ms")
+                  resolve()
+                })
               } else {
+                console.log("[FrameExtract] No requestVideoFrameCallback, resolving immediately")
                 resolve()
               }
             }
@@ -314,6 +353,8 @@ export function useVideoProcessor() {
             video.currentTime = targetTime
           })
 
+          console.log("[FrameExtract] Seek complete, total seek time:", (performance.now() - seekStartMs).toFixed(0), "ms")
+          console.log("[FrameExtract] Creating canvas", video.videoWidth, "x", video.videoHeight)
           const canvas = document.createElement("canvas")
           canvas.width = video.videoWidth
           canvas.height = video.videoHeight
@@ -321,14 +362,23 @@ export function useVideoProcessor() {
           if (!ctx) {
             throw new Error("Unable to render frame. Please try again.")
           }
+          console.log("[FrameExtract] Drawing video frame to canvas...")
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+          console.log("[FrameExtract] Frame drawn, encoding to", mimeType)
 
+          const encodeStartMs = performance.now()
           const blob = await new Promise<Blob>((resolve, reject) => {
+            const timeoutId = setTimeout(() => {
+              console.error("[FrameExtract] Timeout encoding after 30s")
+              reject(new Error("Timeout encoding frame image."))
+            }, 30000)
             canvas.toBlob((result) => {
+              clearTimeout(timeoutId)
               if (!result) {
                 reject(new Error("Failed to encode frame image."))
                 return
               }
+              console.log("[FrameExtract] Encoded in", (performance.now() - encodeStartMs).toFixed(0), "ms, size:", result.size, "bytes")
               resolve(result)
             }, mimeType)
           })
@@ -337,6 +387,7 @@ export function useVideoProcessor() {
           setOutputUrl(url)
           setProgress(100)
           setIsComplete(true)
+          console.log("[FrameExtract] Complete, triggering download")
 
           const a = document.createElement("a")
           a.href = url
@@ -345,6 +396,7 @@ export function useVideoProcessor() {
           return
         } finally {
           URL.revokeObjectURL(objectUrl)
+          console.log("[FrameExtract] Cleaned up object URL")
         }
       }
 
@@ -352,17 +404,32 @@ export function useVideoProcessor() {
         setProgress(Math.round(prog * 100))
       })
 
+      console.log("[FFmpeg] Starting processing for:", config.type)
+      console.log("[FFmpeg] Video file size:", videoData.file.size, "bytes (", (videoData.file.size / (1024 * 1024)).toFixed(1), "MB)")
+
       let uint8Array: Uint8Array
       try {
-        uint8Array = videoData.fileData
-          ? videoData.fileData
-          : new Uint8Array(await videoData.file.arrayBuffer())
-      } catch {
+        if (videoData.fileData) {
+          console.log("[FFmpeg] Using cached fileData")
+          uint8Array = videoData.fileData
+        } else {
+          console.log("[FFmpeg] Reading file into ArrayBuffer...")
+          const readStartMs = performance.now()
+          const buffer = await videoData.file.arrayBuffer()
+          console.log("[FFmpeg] ArrayBuffer read in", (performance.now() - readStartMs).toFixed(0), "ms")
+          uint8Array = new Uint8Array(buffer)
+        }
+        console.log("[FFmpeg] Uint8Array length:", uint8Array.length)
+      } catch (err) {
+        console.error("[FFmpeg] Error reading file:", err)
         throw new Error("The selected video file is no longer accessible. Please re-select the file and try again.")
       }
 
       const inputFileName = "input.mp4"
+      console.log("[FFmpeg] Writing file to virtual filesystem...")
+      const writeStartMs = performance.now()
       await ffmpeg.writeFile(inputFileName, uint8Array)
+      console.log("[FFmpeg] File written in", (performance.now() - writeStartMs).toFixed(0), "ms")
 
       if (config.type === "merge") {
         const audioFile = config.params.audioFile as File | undefined
@@ -403,23 +470,30 @@ export function useVideoProcessor() {
 
       const args = buildFFmpegArgs(config, inputFileName, outputFileName)
 
-      console.log("Running FFmpeg with args:", args)
+      console.log("[FFmpeg] Running with args:", args)
+      const execStartMs = performance.now()
       await ffmpeg.exec(args)
+      console.log("[FFmpeg] Execution completed in", (performance.now() - execStartMs).toFixed(0), "ms")
 
       let url: string
       if (config.type === "frame-extract" && config.params.mode !== "single") {
+        console.log("[FrameExtract] Multi-frame mode, listing directory...")
         const format = config.params.format || "png"
         const entries = await ffmpeg.listDir("/")
+        console.log("[FrameExtract] Directory entries:", entries.length)
         const frameFiles = entries
           .filter((entry: { name: string; type?: string }) => entry.type === "file")
           .map((entry: { name: string }) => entry.name)
           .filter((name: string) => name.startsWith("frame_") && name.endsWith(`.${format}`))
           .sort()
 
+        console.log("[FrameExtract] Found", frameFiles.length, "frame files")
         if (frameFiles.length === 0) {
           throw new Error("No frames were generated. Try a larger interval or a different format.")
         }
 
+        console.log("[FrameExtract] Creating ZIP archive...")
+        const zipStartMs = performance.now()
         const zip = new JSZip()
         for (const name of frameFiles) {
           const data = await ffmpeg.readFile(name)
@@ -427,6 +501,7 @@ export function useVideoProcessor() {
           zip.file(name, blobData)
         }
         const zipBlob = await zip.generateAsync({ type: "blob" })
+        console.log("[FrameExtract] ZIP created in", (performance.now() - zipStartMs).toFixed(0), "ms, size:", zipBlob.size, "bytes")
         url = URL.createObjectURL(zipBlob)
       } else {
         const outputData = await ffmpeg.readFile(outputFileName)
@@ -448,9 +523,9 @@ export function useVideoProcessor() {
     } catch (err) {
       setError(`Error processing video: ${(err as Error).message}`)
     } finally {
-      setIsProcessing(false)
+      finishProcessing()
     }
-  }, [ffmpeg, isLoaded, videoData])
+  }, [ffmpeg, isLoaded, videoData, startProcessing, finishProcessing])
 
   const download = useCallback((config: ActionConfig) => {
     if (outputUrl) {
@@ -463,12 +538,12 @@ export function useVideoProcessor() {
   }, [outputUrl, videoData])
 
   const resetProcessor = useCallback(() => {
-    setIsProcessing(false)
+    finishProcessing()
     setIsComplete(false)
     setProgress(0)
     setOutputUrl(null)
     setError(null)
-  }, [])
+  }, [finishProcessing])
 
   return {
     isLoaded,
