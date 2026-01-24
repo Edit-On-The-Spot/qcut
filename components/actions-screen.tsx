@@ -22,6 +22,10 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useVideo, type ActionType } from "@/lib/video-context"
 
+/**
+ * Available video operations, ordered to match landing page features.
+ * This ensures consistent UX when users navigate from landing to actions.
+ */
 const actions: Array<{
   type: ActionType
   label: string
@@ -29,22 +33,16 @@ const actions: Array<{
   icon: React.ComponentType<{ className?: string }>
 }> = [
   {
-    type: "convert",
-    label: "Convert Format",
-    description: "Change video format (MP4, WebM, AVI, etc.)",
-    icon: Repeat,
-  },
-  {
-    type: "compress",
-    label: "Compress Video",
-    description: "Reduce file size while maintaining quality",
-    icon: Minimize2,
-  },
-  {
     type: "trim",
     label: "Cut/Trim",
     description: "Cut and trim video segments",
     icon: Scissors,
+  },
+  {
+    type: "convert",
+    label: "Convert Format",
+    description: "Change video format (MP4, WebM, AVI, etc.)",
+    icon: Repeat,
   },
   {
     type: "extract-audio",
@@ -53,16 +51,10 @@ const actions: Array<{
     icon: Music,
   },
   {
-    type: "merge",
-    label: "Merge Audio+Video",
-    description: "Combine separate audio and video files",
-    icon: Merge,
-  },
-  {
-    type: "gif",
-    label: "Create GIF",
-    description: "Convert video to animated GIF",
-    icon: ImageIcon,
+    type: "compress",
+    label: "Compress Video",
+    description: "Reduce file size while maintaining quality",
+    icon: Minimize2,
   },
   {
     type: "resize",
@@ -71,16 +63,28 @@ const actions: Array<{
     icon: Maximize2,
   },
   {
-    type: "frame-extract",
-    label: "Frame Extract",
-    description: "Extract frames as images",
-    icon: Grid3x3,
+    type: "merge",
+    label: "Merge Audio+Video",
+    description: "Combine separate audio and video files",
+    icon: Merge,
   },
   {
     type: "combine",
     label: "Combine Clips",
     description: "Concatenate multiple video clips",
     icon: Layers,
+  },
+  {
+    type: "frame-extract",
+    label: "Frame Extract",
+    description: "Extract frames as images",
+    icon: Grid3x3,
+  },
+  {
+    type: "gif",
+    label: "Create GIF",
+    description: "Convert video to animated GIF",
+    icon: ImageIcon,
   },
   {
     type: "normalize-audio",
