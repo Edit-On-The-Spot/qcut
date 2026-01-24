@@ -1,7 +1,8 @@
 "use client"
 
-import { useRef, useEffect } from "react"
+import { useRef, useEffect, useState } from "react"
 import { Upload, X } from "lucide-react"
+import { FileSizeWarning, getFileSizeWarningType } from "@/components/file-size-warning"
 
 interface FileSelectModalProps {
   /** Whether the modal is currently visible */
@@ -22,6 +23,23 @@ interface FileSelectModalProps {
 export function FileSelectModal({ isOpen, onClose, onFileSelect, title }: FileSelectModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const modalRef = useRef<HTMLDivElement>(null)
+  const [fileSizeWarning, setFileSizeWarning] = useState<{
+    type: "error" | "warning"
+    file: File
+  } | null>(null)
+
+  /**
+   * Validates file size and either shows a warning or proceeds with selection.
+   * @param file - The selected video file
+   */
+  const validateAndSelectFile = (file: File) => {
+    const warningType = getFileSizeWarningType(file.size)
+    if (warningType) {
+      setFileSizeWarning({ type: warningType, file })
+    } else {
+      onFileSelect(file)
+    }
+  }
 
   // Close on escape key
   useEffect(() => {
@@ -57,7 +75,7 @@ export function FileSelectModal({ isOpen, onClose, onFileSelect, title }: FileSe
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (files && files.length > 0) {
-      onFileSelect(files[0])
+      validateAndSelectFile(files[0])
     }
   }
 
@@ -65,7 +83,7 @@ export function FileSelectModal({ isOpen, onClose, onFileSelect, title }: FileSe
     e.preventDefault()
     const files = e.dataTransfer.files
     if (files.length > 0 && files[0].type.startsWith("video/")) {
-      onFileSelect(files[0])
+      validateAndSelectFile(files[0])
     }
   }
 
@@ -124,6 +142,21 @@ export function FileSelectModal({ isOpen, onClose, onFileSelect, title }: FileSe
           </p>
         </div>
       </div>
+
+      {/* File size warning dialog */}
+      {fileSizeWarning && (
+        <FileSizeWarning
+          type={fileSizeWarning.type}
+          isOpen={true}
+          fileSizeBytes={fileSizeWarning.file.size}
+          onClose={() => setFileSizeWarning(null)}
+          onProceed={() => {
+            const file = fileSizeWarning.file
+            setFileSizeWarning(null)
+            onFileSelect(file)
+          }}
+        />
+      )}
     </div>
   )
 }

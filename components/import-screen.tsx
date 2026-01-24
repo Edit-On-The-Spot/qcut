@@ -13,6 +13,7 @@ import { FAQSection } from "@/components/landing/faq-section"
 import { FinalCTASection } from "@/components/landing/final-cta-section"
 import { QcutFooter } from "@/components/landing/qcut-footer"
 import { FileSelectModal } from "@/components/file-select-modal"
+import { FileSizeWarning, getFileSizeWarningType } from "@/components/file-size-warning"
 import { useVideo, type ActionType } from "@/lib/video-context"
 
 /**
@@ -27,14 +28,27 @@ export function ImportScreen() {
   const [isDragging, setIsDragging] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [pendingAction, setPendingAction] = useState<ActionType | null>(null)
+  const [fileSizeWarning, setFileSizeWarning] = useState<{
+    type: "error" | "warning"
+    file: File
+  } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleSelectVideo = () => {
     fileInputRef.current?.click()
   }
 
+  /**
+   * Validates file size and either shows a warning or proceeds with processing.
+   * @param file - The selected video file
+   */
   const handleFileSelect = (file: File) => {
-    processFile(file)
+    const warningType = getFileSizeWarningType(file.size)
+    if (warningType) {
+      setFileSizeWarning({ type: warningType, file })
+    } else {
+      processFile(file)
+    }
   }
 
   const processFile = (file: File) => {
@@ -143,6 +157,21 @@ export function ImportScreen() {
         onFileSelect={handleModalFileSelect}
         title={pendingAction ? `Select video to ${pendingAction.replace("-", " ")}` : "Select a video"}
       />
+
+      {/* File size warning dialog */}
+      {fileSizeWarning && (
+        <FileSizeWarning
+          type={fileSizeWarning.type}
+          isOpen={true}
+          fileSizeBytes={fileSizeWarning.file.size}
+          onClose={() => setFileSizeWarning(null)}
+          onProceed={() => {
+            const file = fileSizeWarning.file
+            setFileSizeWarning(null)
+            processFile(file)
+          }}
+        />
+      )}
     </div>
   )
 }
