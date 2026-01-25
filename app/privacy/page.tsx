@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Privacy Policy - qcut.app",
+  title: "Privacy Policy - Qcut",
   description: "Privacy Policy for Qcut video editor",
 }
 
@@ -238,7 +238,7 @@ export default function PrivacyPage() {
           <br />
           Email: <a href="mailto:support@editonthespot.com">support@editonthespot.com</a>
           <br />
-          Website: <a href="http://www.qcut.ai">www.qcut.ai</a>
+          Website: <a href="https://qcut.app">qcut.app</a>
         </p>
       </div>
     </div>

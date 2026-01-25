@@ -1,8 +1,8 @@
 import { ContactForm } from "@/components/contact-form"
 
 export const metadata = {
-  title: "Contact Us - qcut.app",
-  description: "Get in touch with the qcut team. We're here to help with questions, feedback, or support.",
+  title: "Contact Us - Qcut",
+  description: "Get in touch with the Qcut team. We're here to help with questions, feedback, or support.",
 }
 
 /**

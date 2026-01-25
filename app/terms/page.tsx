@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Terms of Service - qcut.app",
+  title: "Terms of Service - Qcut",
   description: "Terms of Service for Qcut video editor",
 }
 
@@ -248,7 +248,7 @@ export default function TermsPage() {
         <p>
           📧 <a href="mailto:support@editonthespot.com">support@editonthespot.com</a>
           <br />
-          🌐 <a href="http://www.qcut.ai">www.qcut.ai</a>
+          🌐 <a href="https://qcut.app">qcut.app</a>
         </p>
       </div>
     </div>

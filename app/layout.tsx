@@ -1,6 +1,7 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
+import Script from "next/script"
 import { Header } from "@/components/header"
 import { FFmpegLoader } from "@/components/ffmpeg-loader"
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration"
@@ -19,14 +20,14 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: "qcut.app - Lightning-fast in-browser video editor",
+  title: "Qcut - Lightning-fast in-browser video editor",
   description: "Simple, powerful video editing powered by FFmpeg",
   generator: "v0.app",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "qcut",
+    title: "Qcut",
   },
   icons: {
     icon: [
@@ -47,6 +48,18 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans antialiased`}>
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-8508P87GEX"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-8508P87GEX');
+          `}
+        </Script>
         <BuildInfo />
         <ServiceWorkerRegistration />
         <FFmpegLoader />
