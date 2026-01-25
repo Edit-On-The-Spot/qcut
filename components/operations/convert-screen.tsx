@@ -10,9 +10,31 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useCodecDetection } from "@/lib/use-codec-detection"
 
+/** Maps detected codec names to display names */
+const CODEC_DISPLAY_NAMES: Record<string, string> = {
+  h264: "H.264",
+  hevc: "H.265/HEVC",
+  h265: "H.265/HEVC",
+  vp9: "VP9",
+  vp8: "VP8",
+  av1: "AV1",
+  mpeg4: "MPEG-4",
+  mpeg2video: "MPEG-2",
+}
+
+/** Maps detected codec names to FFmpeg encoder names */
+const CODEC_TO_ENCODER: Record<string, string> = {
+  h264: "libx264",
+  hevc: "libx265",
+  h265: "libx265",
+  vp9: "libvpx-vp9",
+  vp8: "libvpx",
+  av1: "libaom-av1",
+}
+
 /**
  * Convert screen for changing video format.
- * Allows selecting output format and video codec.
+ * Defaults to copying the input codec (no re-encode).
  * Detects current video codec using FFmpeg.
  */
 export function ConvertScreen() {
@@ -22,9 +44,14 @@ export function ConvertScreen() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [format, setFormat] = useState("mp4")
-  const [codec, setCodec] = useState("libx264")
+  const [codec, setCodec] = useState("copy") // Default to copy (no re-encode)
   const [videoUrl, setVideoUrl] = useState<string>("")
   const [hasDetected, setHasDetected] = useState(false)
+
+  const detectedCodec = videoData?.codec || codecInfo?.videoCodec || null
+  const detectedCodecDisplay = detectedCodec
+    ? CODEC_DISPLAY_NAMES[detectedCodec] || detectedCodec.toUpperCase()
+    : null
 
   useEffect(() => {
     if (!videoData) return
@@ -39,7 +66,6 @@ export function ConvertScreen() {
       setHasDetected(true)
       detectCodecs().then((info) => {
         if (info?.videoCodec && videoData) {
-          // Update videoData with detected codec
           setVideoData((current) =>
             current ? { ...current, codec: info.videoCodec || undefined } : current
           )
@@ -122,10 +148,18 @@ export function ConvertScreen() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="libx264">H.264 (libx264)</SelectItem>
-                  <SelectItem value="libx265">H.265 (libx265)</SelectItem>
-                  <SelectItem value="libvpx-vp9">VP9 (libvpx-vp9)</SelectItem>
-                  <SelectItem value="copy">Copy (no re-encode)</SelectItem>
+                  <SelectItem value="copy">
+                    {isDetecting ? (
+                      "Detecting..."
+                    ) : detectedCodecDisplay ? (
+                      `${detectedCodecDisplay} (no re-encode)`
+                    ) : (
+                      "Copy (no re-encode)"
+                    )}
+                  </SelectItem>
+                  <SelectItem value="libx264">H.264 (re-encode)</SelectItem>
+                  <SelectItem value="libx265">H.265 (re-encode)</SelectItem>
+                  <SelectItem value="libvpx-vp9">VP9 (re-encode)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -134,21 +168,23 @@ export function ConvertScreen() {
           <div className="bg-background/50 rounded p-4 text-sm space-y-1">
             <p className="text-muted-foreground">Current format: {videoData.format || "Unknown"}</p>
             <p className="text-muted-foreground flex items-center gap-2">
-              Current codec:{" "}
+              Input codec:{" "}
               {isDetecting ? (
                 <>
                   <Loader2 className="w-3 h-3 animate-spin inline" />
                   Detecting...
                 </>
               ) : (
-                videoData.codec || codecInfo?.videoCodec || "Unknown"
+                detectedCodecDisplay || "Unknown"
               )}
             </p>
             {codecInfo?.audioCodec && (
               <p className="text-muted-foreground">Audio codec: {codecInfo.audioCodec}</p>
             )}
             {codec !== "copy" && (
-              <p className="text-muted-foreground">Re-encoding required: selected codec will re-encode video.</p>
+              <p className="text-yellow-600 dark:text-yellow-500">
+                Re-encoding to {codec} will be slower and may reduce quality.
+              </p>
             )}
           </div>
 
