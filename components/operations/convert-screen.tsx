@@ -65,7 +65,7 @@ export function ConvertScreen() {
     params: { format, codec },
   })
 
-  if (isLoading) {
+  if (isLoading || !videoData) {
     return <VideoLoading />
   }
 

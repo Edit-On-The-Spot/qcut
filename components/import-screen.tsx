@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { QcutHero } from "@/components/landing/qcut-hero"
 import { QcutDropzone } from "@/components/landing/qcut-dropzone"
@@ -34,6 +34,13 @@ export function ImportScreen() {
     file: File
   } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // Use ref to avoid stale closure in async callbacks
+  const pendingActionRef = useRef<ActionType | null>(null)
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    pendingActionRef.current = pendingAction
+  }, [pendingAction])
 
   const handleSelectVideo = () => {
     fileInputRef.current?.click()
@@ -93,11 +100,13 @@ export function ImportScreen() {
 
     // Navigate after a microtask to ensure atom update propagates
     queueMicrotask(() => {
-      const destination = pendingAction ? `/${pendingAction}` : "/actions"
-      console.log("[ImportScreen] Navigating to:", destination)
+      // Use ref to get latest pending action (avoids stale closure)
+      const action = pendingActionRef.current
+      const destination = action ? `/${action}` : "/actions"
+      console.log("[ImportScreen] Navigating to:", destination, "pendingAction:", action)
       markSpaNavigation()
       router.push(destination)
-      if (pendingAction) {
+      if (action) {
         setPendingAction(null)
       }
     })
@@ -118,6 +127,8 @@ export function ImportScreen() {
    * Opens the file-select modal and stores the action type to navigate to after file selection.
    */
   const handleFeatureClick = (actionType: ActionType) => {
+    // Set ref immediately to avoid stale closure issues
+    pendingActionRef.current = actionType
     setPendingAction(actionType)
     setIsModalOpen(true)
   }

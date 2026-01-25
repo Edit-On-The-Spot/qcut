@@ -34,7 +34,7 @@ export function MergeScreen() {
     },
   })
 
-  if (isLoading) {
+  if (isLoading || !videoData) {
     return <VideoLoading />
   }
 

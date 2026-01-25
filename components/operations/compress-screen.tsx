@@ -27,7 +27,7 @@ export function CompressScreen() {
     params: { crf: quality[0], preset },
   })
 
-  if (isLoading) {
+  if (isLoading || !videoData) {
     return <VideoLoading />
   }
 

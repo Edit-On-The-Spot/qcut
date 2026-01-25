@@ -31,7 +31,7 @@ export function NormalizeAudioScreen() {
     },
   })
 
-  if (isLoading) {
+  if (isLoading || !videoData) {
     return <VideoLoading />
   }
 

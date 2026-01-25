@@ -73,7 +73,7 @@ export function RotateScreen() {
 
   const hasTransformation = rotation !== 0 || isFlipHorizontal || isFlipVertical
 
-  if (isLoading) {
+  if (isLoading || !videoData) {
     return <VideoLoading />
   }
 

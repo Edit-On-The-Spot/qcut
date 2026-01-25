@@ -36,7 +36,7 @@ export function CombineScreen() {
     },
   })
 
-  if (isLoading) {
+  if (isLoading || !videoData) {
     return <VideoLoading />
   }
 

@@ -35,7 +35,7 @@ export function ExtractAudioScreen() {
     },
   })
 
-  if (isLoading) {
+  if (isLoading || !videoData) {
     return <VideoLoading />
   }
 

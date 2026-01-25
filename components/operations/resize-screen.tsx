@@ -52,7 +52,7 @@ export function ResizeScreen() {
     params: { width, height },
   })
 
-  if (isLoading) {
+  if (isLoading || !videoData) {
     return <VideoLoading />
   }
 
