@@ -3,24 +3,28 @@
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Play, Pause } from "lucide-react"
+import { ArrowLeft, Play, Pause, Loader2 } from "lucide-react"
 import { useVideo, type ActionConfig } from "@/lib/video-context"
 import { ProcessingButton } from "@/components/processing-button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useCodecDetection } from "@/lib/use-codec-detection"
 
 /**
  * Convert screen for changing video format.
  * Allows selecting output format and video codec.
+ * Detects current video codec using FFmpeg.
  */
 export function ConvertScreen() {
   const router = useRouter()
-  const { videoData, setActionConfig } = useVideo()
+  const { videoData, setVideoData } = useVideo()
+  const { codecInfo, isDetecting, detectCodecs, isReady } = useCodecDetection()
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [format, setFormat] = useState("mp4")
   const [codec, setCodec] = useState("libx264")
   const [videoUrl, setVideoUrl] = useState<string>("")
+  const [hasDetected, setHasDetected] = useState(false)
 
   useEffect(() => {
     if (!videoData) return
@@ -28,6 +32,21 @@ export function ConvertScreen() {
     setVideoUrl(url)
     return () => URL.revokeObjectURL(url)
   }, [videoData])
+
+  // Detect codecs when FFmpeg is ready
+  useEffect(() => {
+    if (isReady && !hasDetected && !isDetecting) {
+      setHasDetected(true)
+      detectCodecs().then((info) => {
+        if (info?.videoCodec && videoData) {
+          // Update videoData with detected codec
+          setVideoData((current) =>
+            current ? { ...current, codec: info.videoCodec || undefined } : current
+          )
+        }
+      })
+    }
+  }, [isReady, hasDetected, isDetecting, detectCodecs, videoData, setVideoData])
 
   const togglePlay = () => {
     if (!videoRef.current) return
@@ -114,7 +133,20 @@ export function ConvertScreen() {
 
           <div className="bg-background/50 rounded p-4 text-sm space-y-1">
             <p className="text-muted-foreground">Current format: {videoData.format || "Unknown"}</p>
-            <p className="text-muted-foreground">Current codec: {videoData.codec || "Unknown"}</p>
+            <p className="text-muted-foreground flex items-center gap-2">
+              Current codec:{" "}
+              {isDetecting ? (
+                <>
+                  <Loader2 className="w-3 h-3 animate-spin inline" />
+                  Detecting...
+                </>
+              ) : (
+                videoData.codec || codecInfo?.videoCodec || "Unknown"
+              )}
+            </p>
+            {codecInfo?.audioCodec && (
+              <p className="text-muted-foreground">Audio codec: {codecInfo.audioCodec}</p>
+            )}
             {codec !== "copy" && (
               <p className="text-muted-foreground">Re-encoding required: selected codec will re-encode video.</p>
             )}

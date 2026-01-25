@@ -115,7 +115,8 @@ export function useFFmpeg() {
 export function useProcessingState() {
   const [isProcessing, setIsProcessing] = useAtom(isProcessingAtom)
   const [abortController, setAbortController] = useAtom(processingAbortControllerAtom)
-  const [ffmpeg] = useAtom(ffmpegAtom)
+  const [ffmpeg, setFFmpeg] = useAtom(ffmpegAtom)
+  const [, setIsLoaded] = useAtom(ffmpegLoadedAtom)
 
   /**
    * Starts processing and creates an abort controller.
@@ -131,6 +132,7 @@ export function useProcessingState() {
   /**
    * Stops processing and terminates FFmpeg if running.
    * Call this when navigating away or user cancels.
+   * Also resets FFmpeg state so it will reload on next use.
    */
   const cancelProcessing = async () => {
     console.log("[Processing] Cancelling processing...")
@@ -146,6 +148,10 @@ export function useProcessingState() {
       } catch (err) {
         console.warn("[Processing] Error terminating FFmpeg:", err)
       }
+      // Reset FFmpeg state so it will reload on next use
+      setFFmpeg(null)
+      setIsLoaded(false)
+      console.log("[Processing] FFmpeg state reset, will reload on next operation")
     }
     setIsProcessing(false)
   }

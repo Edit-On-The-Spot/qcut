@@ -4,7 +4,7 @@
  * Pages are cached on-demand as users navigate to them.
  */
 
-const CACHE_NAME = 'qcut-v4';
+const CACHE_NAME = 'qcut-v5';
 
 // Core assets to cache immediately on install (must exist and return 200)
 const CORE_ASSETS = [
