@@ -6,7 +6,9 @@ import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Play, Pause } from "lucide-react"
-import { useVideo, type ActionConfig } from "@/lib/video-context"
+import type { ActionConfig } from "@/lib/video-context"
+import { useRequireVideo } from "@/lib/use-require-video"
+import { VideoLoading } from "@/components/video-loading"
 import { ProcessingButton } from "@/components/processing-button"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
@@ -19,7 +21,7 @@ import { snapTimeToFrame } from "@/lib/time-utils"
  */
 export function GifScreen() {
   const router = useRouter()
-  const { videoData, setActionConfig } = useVideo()
+  const { videoData, setActionConfig, isLoading } = useRequireVideo()
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
@@ -99,13 +101,6 @@ export function GifScreen() {
     setEndTime(null)
   }
 
-  // Redirect to home if no video is loaded
-  useEffect(() => {
-    if (!videoData) {
-      router.push("/")
-    }
-  }, [videoData, router])
-
   const getActionConfig = (): ActionConfig => ({
     type: "gif",
     params: {
@@ -116,8 +111,8 @@ export function GifScreen() {
     },
   })
 
-  if (!videoData) {
-    return null
+  if (isLoading || !videoData) {
+    return <VideoLoading />
   }
 
   const formatTime = (seconds: number) => {

@@ -6,7 +6,8 @@ import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Play, Pause, Volume2, VolumeX, Scissors, X, Loader2 } from "lucide-react"
-import { useVideo, type ActionConfig } from "@/lib/video-context"
+import type { ActionConfig } from "@/lib/video-context"
+import { useRequireVideo } from "@/lib/use-require-video"
 import { ProcessingButton } from "@/components/processing-button"
 import { useVideoFramerate } from "@/lib/use-video-framerate"
 import { useFFmpegThumbnails } from "@/lib/use-ffmpeg-thumbnails"
@@ -20,7 +21,7 @@ import { useMarkerDrag } from "@/lib/use-marker-drag"
  */
 export function TrimScreen() {
   const router = useRouter()
-  const { videoData, setActionConfig } = useVideo()
+  const { videoData, setActionConfig, isLoading } = useRequireVideo()
   const videoRef = useRef<HTMLVideoElement>(null)
   const thumbnailContainerRef = useRef<HTMLDivElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -314,22 +315,6 @@ export function TrimScreen() {
     setEndTime(duration)
   }
 
-  // Track mount state to avoid redirect race conditions
-  const [isMounted, setIsMounted] = useState(false)
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
-
-  // Redirect to home if no video is loaded (only after mount to avoid race conditions)
-  useEffect(() => {
-    if (!isMounted) return
-    console.log("[TrimScreen] videoData check:", videoData ? "loaded" : "null")
-    if (!videoData) {
-      console.log("[TrimScreen] No video data, redirecting to home")
-      router.push("/")
-    }
-  }, [videoData, router, isMounted])
-
   const getActionConfig = (): ActionConfig => ({
     type: "trim",
     params: {
@@ -338,8 +323,7 @@ export function TrimScreen() {
     },
   })
 
-  if (!videoData) {
-    // Show loading state briefly while redirect happens or atoms settle
+  if (isLoading || !videoData) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />

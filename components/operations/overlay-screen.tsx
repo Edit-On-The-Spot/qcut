@@ -6,7 +6,9 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Play, Pause, Upload } from "lucide-react"
-import { useVideo, type ActionConfig } from "@/lib/video-context"
+import type { ActionConfig } from "@/lib/video-context"
+import { useRequireVideo } from "@/lib/use-require-video"
+import { VideoLoading } from "@/components/video-loading"
 import { ProcessingButton } from "@/components/processing-button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -19,7 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
  */
 export function OverlayScreen() {
   const router = useRouter()
-  const { videoData } = useVideo()
+  const { videoData, isLoading } = useRequireVideo()
   const videoRef = useRef<HTMLVideoElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -152,15 +154,8 @@ export function OverlayScreen() {
     return (bytes / (1024 * 1024)).toFixed(2) + " MB"
   }
 
-  // Redirect to home if no video is loaded
-  useEffect(() => {
-    if (!videoData) {
-      router.push("/")
-    }
-  }, [videoData, router])
-
-  if (!videoData) {
-    return null
+  if (isLoading || !videoData) {
+    return <VideoLoading />
   }
 
   return (

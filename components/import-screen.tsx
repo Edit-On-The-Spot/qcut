@@ -15,6 +15,7 @@ import { QcutFooter } from "@/components/landing/qcut-footer"
 import { FileSelectModal } from "@/components/file-select-modal"
 import { FileSizeWarning, getFileSizeWarningType } from "@/components/file-size-warning"
 import { useVideo, type ActionType } from "@/lib/video-context"
+import { markSpaNavigation } from "@/lib/use-require-video"
 
 /**
  * Import screen for selecting video files.
@@ -81,6 +82,7 @@ export function ImportScreen() {
     file: File,
     info: { duration: number; width: number; height: number; size: string }
   ) => {
+    console.log("[ImportScreen] Setting video data:", file.name)
     setVideoData({
       file,
       duration: info.duration,
@@ -89,6 +91,18 @@ export function ImportScreen() {
       format: file.name.split(".").pop()?.toUpperCase(),
     })
 
+    // Navigate after a microtask to ensure atom update propagates
+    queueMicrotask(() => {
+      const destination = pendingAction ? `/${pendingAction}` : "/actions"
+      console.log("[ImportScreen] Navigating to:", destination)
+      markSpaNavigation()
+      router.push(destination)
+      if (pendingAction) {
+        setPendingAction(null)
+      }
+    })
+
+    // Load file data in background (not needed for navigation)
     void file
       .arrayBuffer()
       .then((buffer) => {
@@ -97,13 +111,6 @@ export function ImportScreen() {
         )
       })
       .catch(() => {})
-
-    if (pendingAction) {
-      router.push(`/${pendingAction}`)
-      setPendingAction(null)
-    } else {
-      router.push("/actions")
-    }
   }
 
   /**
