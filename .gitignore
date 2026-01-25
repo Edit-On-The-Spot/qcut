@@ -18,3 +18,12 @@ out/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# IDE
+.idea/
+
+# downloaded files
+drive-download-*/
+
+# lambda generated
+lambda/*/package-lock.json
