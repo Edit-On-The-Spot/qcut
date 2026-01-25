@@ -4,7 +4,7 @@
  * Pages are cached on-demand as users navigate to them.
  */
 
-const CACHE_NAME = 'qcut-v5';
+const CACHE_NAME = 'qcut-v6';
 
 // Core assets to cache immediately on install (must exist and return 200)
 const CORE_ASSETS = [
@@ -47,16 +47,18 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches and notify clients to reload
 self.addEventListener('activate', (event) => {
+  console.log('[SW] Activating new service worker version:', CACHE_NAME);
   event.waitUntil(
     caches.keys().then((cacheNames) => {
+      const oldCaches = cacheNames.filter((name) => name !== CACHE_NAME);
+      console.log('[SW] Deleting old caches:', oldCaches);
       return Promise.all(
-        cacheNames
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
+        oldCaches.map((name) => caches.delete(name))
       );
     }).then(() => {
       // Notify all clients that a new version is active
       return self.clients.matchAll({ type: 'window' }).then((clients) => {
+        console.log('[SW] Notifying', clients.length, 'clients of update');
         clients.forEach((client) => {
           client.postMessage({ type: 'SW_UPDATED' });
         });

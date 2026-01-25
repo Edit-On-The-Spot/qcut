@@ -1,13 +1,14 @@
 "use client"
 
 import type React from "react"
-
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useState } from "react"
+import { Plus, X, GripVertical } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Plus, X, GripVertical } from "lucide-react"
-import { useVideo, type ActionConfig } from "@/lib/video-context"
+import type { ActionConfig } from "@/lib/video-context"
+import { useRequireVideo } from "@/lib/use-require-video"
 import { ProcessingButton } from "@/components/processing-button"
+import { VideoLoading } from "@/components/video-loading"
+import { BackButton } from "@/components/back-button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 
@@ -16,8 +17,7 @@ import { Input } from "@/components/ui/input"
  * Allows adding multiple video files to merge into one.
  */
 export function CombineScreen() {
-  const router = useRouter()
-  const { videoData, setActionConfig } = useVideo()
+  const { videoData, isLoading } = useRequireVideo()
   const [clips, setClips] = useState<File[]>(videoData ? [videoData.file] : [])
 
   const handleAddClips = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -29,13 +29,6 @@ export function CombineScreen() {
     setClips(clips.filter((_, i) => i !== index))
   }
 
-  // Redirect to home if no video is loaded
-  useEffect(() => {
-    if (!videoData) {
-      router.push("/")
-    }
-  }, [videoData, router])
-
   const getActionConfig = (): ActionConfig => ({
     type: "combine",
     params: {
@@ -43,8 +36,8 @@ export function CombineScreen() {
     },
   })
 
-  if (!videoData) {
-    return null
+  if (isLoading) {
+    return <VideoLoading />
   }
 
   const formatFileSize = (bytes: number) => {
@@ -53,10 +46,7 @@ export function CombineScreen() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <Button variant="ghost" onClick={() => router.push("/actions")}>
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Back
-      </Button>
+      <BackButton />
 
       <div className="space-y-6">
         <div className="space-y-2">

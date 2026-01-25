@@ -1,11 +1,15 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useState } from "react"
+import { RotateCw, FlipHorizontal, FlipVertical } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Play, Pause, RotateCw, FlipHorizontal, FlipVertical } from "lucide-react"
-import { useVideo, type ActionConfig } from "@/lib/video-context"
+import type { ActionConfig } from "@/lib/video-context"
+import { useRequireVideo } from "@/lib/use-require-video"
+import { useVideoUrl } from "@/lib/use-video-url"
 import { ProcessingButton } from "@/components/processing-button"
+import { VideoPreview } from "@/components/video-preview"
+import { VideoLoading } from "@/components/video-loading"
+import { BackButton } from "@/components/back-button"
 import { Label } from "@/components/ui/label"
 
 /** File extensions that support lossless rotation via metadata */
@@ -26,11 +30,8 @@ function isLosslessRotationSupported(filename: string): boolean {
  * Uses lossless metadata rotation for MP4/MOV when only rotating (no flips).
  */
 export function RotateScreen() {
-  const router = useRouter()
-  const { videoData } = useVideo()
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [videoUrl, setVideoUrl] = useState<string>("")
+  const { videoData, isLoading } = useRequireVideo()
+  const videoUrl = useVideoUrl(videoData?.file)
   const [rotation, setRotation] = useState(0)
   const [isFlipHorizontal, setIsFlipHorizontal] = useState(false)
   const [isFlipVertical, setIsFlipVertical] = useState(false)
@@ -38,23 +39,6 @@ export function RotateScreen() {
   const isLosslessFormat = videoData ? isLosslessRotationSupported(videoData.file.name) : false
   const hasFlip = isFlipHorizontal || isFlipVertical
   const willUseLossless = isLosslessFormat && !hasFlip && rotation !== 0
-
-  useEffect(() => {
-    if (!videoData) return
-    const url = URL.createObjectURL(videoData.file)
-    setVideoUrl(url)
-    return () => URL.revokeObjectURL(url)
-  }, [videoData])
-
-  const togglePlay = () => {
-    if (!videoRef.current) return
-    if (isPlaying) {
-      videoRef.current.pause()
-    } else {
-      videoRef.current.play()
-    }
-    setIsPlaying(!isPlaying)
-  }
 
   const getActionConfig = (): ActionConfig => ({
     type: "rotate",
@@ -66,7 +50,7 @@ export function RotateScreen() {
     },
   })
 
-  const getPreviewTransform = () => {
+  const getPreviewTransform = (): React.CSSProperties => {
     const transforms: string[] = []
     // For 90°/270° rotation, scale down to prevent cropping since dimensions swap
     if (rotation === 90 || rotation === 270) {
@@ -84,44 +68,25 @@ export function RotateScreen() {
     if (isFlipVertical) {
       transforms.push("scaleY(-1)")
     }
-    return transforms.join(" ")
+    return { transform: transforms.join(" ") }
   }
 
   const hasTransformation = rotation !== 0 || isFlipHorizontal || isFlipVertical
 
-  // Redirect to home if no video is loaded
-  useEffect(() => {
-    if (!videoData) {
-      router.push("/")
-    }
-  }, [videoData, router])
-
-  if (!videoData) {
-    return null
+  if (isLoading) {
+    return <VideoLoading />
   }
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <Button variant="ghost" onClick={() => router.push("/actions")}>
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Back
-      </Button>
+      <BackButton />
 
       <div className="space-y-4">
-        <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
-          <video
-            ref={videoRef}
-            src={videoUrl}
-            className="w-full h-full object-contain transition-transform duration-300"
-            style={{ transform: getPreviewTransform() }}
-          />
-        </div>
-
-        <div className="flex items-center justify-center">
-          <Button variant="outline" size="lg" className="w-12 h-12 rounded-full bg-transparent" onClick={togglePlay}>
-            {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
-          </Button>
-        </div>
+        <VideoPreview
+          src={videoUrl}
+          videoStyle={getPreviewTransform()}
+          videoClassName="transition-transform duration-300"
+        />
 
         <div className="bg-secondary/50 rounded-lg p-6 space-y-6">
           <div className="space-y-2">

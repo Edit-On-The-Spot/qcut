@@ -25,8 +25,9 @@ export function useCodecDetection() {
    * FFmpeg outputs stream info to stderr which we capture via the log event.
    */
   const detectCodecs = useCallback(async (): Promise<CodecInfo | null> => {
+    console.log("[CodecDetection] detectCodecs called, ffmpeg:", !!ffmpeg, "isLoaded:", isLoaded, "videoData:", !!videoData)
     if (!ffmpeg || !isLoaded || !videoData) {
-      console.log("[CodecDetection] FFmpeg not loaded or no video data")
+      console.log("[CodecDetection] FFmpeg not loaded or no video data - skipping detection")
       return null
     }
 
@@ -35,13 +36,9 @@ export function useCodecDetection() {
 
     try {
       // Write the video file to FFmpeg's virtual filesystem
-      let uint8Array: Uint8Array
-      if (videoData.fileData) {
-        uint8Array = videoData.fileData
-      } else {
-        const buffer = await videoData.file.arrayBuffer()
-        uint8Array = new Uint8Array(buffer)
-      }
+      // Always read fresh from File to avoid detached ArrayBuffer issues
+      const buffer = await videoData.file.arrayBuffer()
+      const uint8Array = new Uint8Array(buffer)
 
       const inputFileName = "probe_input.mp4"
       await ffmpeg.writeFile(inputFileName, uint8Array)

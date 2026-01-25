@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import {
   Repeat,
@@ -21,7 +20,9 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { useVideo, type ActionType } from "@/lib/video-context"
+import { useRequireVideo } from "@/lib/use-require-video"
+import { VideoLoading } from "@/components/video-loading"
+import type { ActionType } from "@/lib/video-context"
 
 /**
  * Available video operations, ordered to match landing page features.
@@ -113,23 +114,14 @@ const actions: Array<{
  */
 export function ActionsScreen() {
   const router = useRouter()
-  const { videoData } = useVideo()
-
-  // Redirect to home if no video is loaded, using useEffect to avoid
-  // race conditions with state updates during navigation
-  useEffect(() => {
-    if (!videoData) {
-      router.push("/")
-    }
-  }, [videoData, router])
+  const { videoData, isLoading } = useRequireVideo()
 
   const handleActionClick = (type: ActionType) => {
     router.push(`/${type}`)
   }
 
-  // Show nothing while checking for video data to avoid flash of content
-  if (!videoData) {
-    return null
+  if (isLoading) {
+    return <VideoLoading message="Loading video data..." />
   }
 
   const formatDuration = (seconds?: number) => {

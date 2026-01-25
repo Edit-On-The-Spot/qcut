@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { useProcessingState } from "@/lib/video-context"
 
 /**
@@ -10,6 +10,13 @@ import { useProcessingState } from "@/lib/video-context"
  */
 export function ServiceWorkerRegistration() {
   const { isProcessing } = useProcessingState()
+  // Use ref to avoid stale closure in message listener
+  const isProcessingRef = useRef(isProcessing)
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    isProcessingRef.current = isProcessing
+  }, [isProcessing])
 
   useEffect(() => {
     // Only register service worker in production
@@ -21,7 +28,7 @@ export function ServiceWorkerRegistration() {
       navigator.serviceWorker
         .register("/sw.js")
         .then((registration) => {
-          console.log("Service Worker registered with scope:", registration.scope)
+          console.log("[SW] Service Worker registered with scope:", registration.scope)
 
           // Check for updates periodically (every 60 seconds)
           setInterval(() => {
@@ -29,24 +36,30 @@ export function ServiceWorkerRegistration() {
           }, 60000)
         })
         .catch((error) => {
-          console.error("Service Worker registration failed:", error)
+          console.error("[SW] Service Worker registration failed:", error)
         })
 
       // Listen for messages from service worker
-      navigator.serviceWorker.addEventListener("message", (event) => {
+      const handleMessage = (event: MessageEvent) => {
         if (event.data?.type === "SW_UPDATED") {
           console.log("[SW] New version available")
-          // Only auto-reload if not processing
-          if (!isProcessing) {
+          // Use ref to get current processing state
+          if (!isProcessingRef.current) {
             console.log("[SW] Reloading page for new version")
             window.location.reload()
           } else {
             console.log("[SW] Processing in progress, deferring reload")
           }
         }
-      })
+      }
+
+      navigator.serviceWorker.addEventListener("message", handleMessage)
+
+      return () => {
+        navigator.serviceWorker.removeEventListener("message", handleMessage)
+      }
     }
-  }, [isProcessing])
+  }, []) // Empty deps - only run once on mount
 
   return null
 }

@@ -1,13 +1,14 @@
 "use client"
 
 import type React from "react"
-
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useState } from "react"
+import { Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Upload } from "lucide-react"
-import { useVideo, type ActionConfig } from "@/lib/video-context"
+import type { ActionConfig } from "@/lib/video-context"
+import { useRequireVideo } from "@/lib/use-require-video"
 import { ProcessingButton } from "@/components/processing-button"
+import { VideoLoading } from "@/components/video-loading"
+import { BackButton } from "@/components/back-button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 
@@ -16,8 +17,7 @@ import { Input } from "@/components/ui/input"
  * Allows uploading a separate audio file to merge with the video.
  */
 export function MergeScreen() {
-  const router = useRouter()
-  const { videoData, setActionConfig } = useVideo()
+  const { videoData, isLoading } = useRequireVideo()
   const [audioFile, setAudioFile] = useState<File | null>(null)
 
   const handleAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -27,13 +27,6 @@ export function MergeScreen() {
     }
   }
 
-  // Redirect to home if no video is loaded
-  useEffect(() => {
-    if (!videoData) {
-      router.push("/")
-    }
-  }, [videoData, router])
-
   const getActionConfig = (): ActionConfig => ({
     type: "merge",
     params: {
@@ -41,8 +34,8 @@ export function MergeScreen() {
     },
   })
 
-  if (!videoData) {
-    return null
+  if (isLoading) {
+    return <VideoLoading />
   }
 
   const formatFileSize = (bytes: number) => {
@@ -51,10 +44,7 @@ export function MergeScreen() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <Button variant="ghost" onClick={() => router.push("/actions")}>
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Back
-      </Button>
+      <BackButton />
 
       <div className="space-y-6">
         <div className="space-y-2">
@@ -67,12 +57,12 @@ export function MergeScreen() {
             <div className="space-y-2">
               <Label>Video File</Label>
               <div className="bg-background rounded-lg p-4 border border-border">
-                <p className="font-medium truncate">{videoData.file.name}</p>
-                <p className="text-sm text-muted-foreground mt-1">{formatFileSize(videoData.file.size)}</p>
-                {videoData.duration && (
+                <p className="font-medium truncate">{videoData!.file.name}</p>
+                <p className="text-sm text-muted-foreground mt-1">{formatFileSize(videoData!.file.size)}</p>
+                {videoData!.duration && (
                   <p className="text-sm text-muted-foreground">
-                    Duration: {Math.floor(videoData.duration / 60)}:
-                    {Math.floor(videoData.duration % 60)
+                    Duration: {Math.floor(videoData!.duration / 60)}:
+                    {Math.floor(videoData!.duration % 60)
                       .toString()
                       .padStart(2, "0")}
                   </p>

@@ -1,11 +1,13 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { ArrowLeft, Play, Pause } from "lucide-react"
-import { useVideo, type ActionConfig } from "@/lib/video-context"
+import { useState } from "react"
+import type { ActionConfig } from "@/lib/video-context"
+import { useRequireVideo } from "@/lib/use-require-video"
+import { useVideoUrl } from "@/lib/use-video-url"
 import { ProcessingButton } from "@/components/processing-button"
+import { VideoPreview } from "@/components/video-preview"
+import { VideoLoading } from "@/components/video-loading"
+import { BackButton } from "@/components/back-button"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 
@@ -14,38 +16,11 @@ import { Slider } from "@/components/ui/slider"
  * Allows setting target loudness, true peak, and loudness range.
  */
 export function NormalizeAudioScreen() {
-  const router = useRouter()
-  const { videoData } = useVideo()
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [videoUrl, setVideoUrl] = useState<string>("")
+  const { videoData, isLoading } = useRequireVideo()
+  const videoUrl = useVideoUrl(videoData?.file)
   const [targetLoudnessLufs, setTargetLoudnessLufs] = useState([-16])
   const [truePeakDb, setTruePeakDb] = useState([-1.5])
   const [loudnessRangeLu, setLoudnessRangeLu] = useState([11])
-
-  useEffect(() => {
-    if (!videoData) return
-    const url = URL.createObjectURL(videoData.file)
-    setVideoUrl(url)
-    return () => URL.revokeObjectURL(url)
-  }, [videoData])
-
-  const togglePlay = () => {
-    if (!videoRef.current) return
-    if (isPlaying) {
-      videoRef.current.pause()
-    } else {
-      videoRef.current.play()
-    }
-    setIsPlaying(!isPlaying)
-  }
-
-  // Redirect to home if no video is loaded
-  useEffect(() => {
-    if (!videoData) {
-      router.push("/")
-    }
-  }, [videoData, router])
 
   const getActionConfig = (): ActionConfig => ({
     type: "normalize-audio",
@@ -56,27 +31,16 @@ export function NormalizeAudioScreen() {
     },
   })
 
-  if (!videoData) {
-    return null
+  if (isLoading) {
+    return <VideoLoading />
   }
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <Button variant="ghost" onClick={() => router.push("/actions")}>
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Back
-      </Button>
+      <BackButton />
 
       <div className="space-y-4">
-        <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
-          <video ref={videoRef} src={videoUrl} className="w-full h-full object-contain" />
-        </div>
-
-        <div className="flex items-center justify-center">
-          <Button variant="outline" size="lg" className="w-12 h-12 rounded-full bg-transparent" onClick={togglePlay}>
-            {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
-          </Button>
-        </div>
+        <VideoPreview src={videoUrl} />
 
         <div className="bg-secondary/50 rounded-lg p-6 space-y-6">
           <div className="space-y-2">

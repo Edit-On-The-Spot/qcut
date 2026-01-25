@@ -1,14 +1,17 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { ArrowLeft, Play, Pause, Loader2 } from "lucide-react"
-import { useVideo, type ActionConfig } from "@/lib/video-context"
+import { useState, useEffect } from "react"
+import { Loader2 } from "lucide-react"
+import type { ActionConfig } from "@/lib/video-context"
+import { useRequireVideo } from "@/lib/use-require-video"
+import { useVideoUrl } from "@/lib/use-video-url"
+import { useCodecDetection } from "@/lib/use-codec-detection"
 import { ProcessingButton } from "@/components/processing-button"
+import { VideoPreview } from "@/components/video-preview"
+import { VideoLoading } from "@/components/video-loading"
+import { BackButton } from "@/components/back-button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useCodecDetection } from "@/lib/use-codec-detection"
 
 /** Maps detected codec names to display names */
 const CODEC_DISPLAY_NAMES: Record<string, string> = {
@@ -22,30 +25,17 @@ const CODEC_DISPLAY_NAMES: Record<string, string> = {
   mpeg2video: "MPEG-2",
 }
 
-/** Maps detected codec names to FFmpeg encoder names */
-const CODEC_TO_ENCODER: Record<string, string> = {
-  h264: "libx264",
-  hevc: "libx265",
-  h265: "libx265",
-  vp9: "libvpx-vp9",
-  vp8: "libvpx",
-  av1: "libaom-av1",
-}
-
 /**
  * Convert screen for changing video format.
  * Defaults to copying the input codec (no re-encode).
  * Detects current video codec using FFmpeg.
  */
 export function ConvertScreen() {
-  const router = useRouter()
-  const { videoData, setVideoData } = useVideo()
+  const { videoData, setVideoData, isLoading } = useRequireVideo()
+  const videoUrl = useVideoUrl(videoData?.file)
   const { codecInfo, isDetecting, detectCodecs, isReady } = useCodecDetection()
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const [isPlaying, setIsPlaying] = useState(false)
   const [format, setFormat] = useState("mp4")
   const [codec, setCodec] = useState("copy") // Default to copy (no re-encode)
-  const [videoUrl, setVideoUrl] = useState<string>("")
   const [hasDetected, setHasDetected] = useState(false)
 
   const detectedCodec = videoData?.codec || codecInfo?.videoCodec || null
@@ -53,18 +43,14 @@ export function ConvertScreen() {
     ? CODEC_DISPLAY_NAMES[detectedCodec] || detectedCodec.toUpperCase()
     : null
 
-  useEffect(() => {
-    if (!videoData) return
-    const url = URL.createObjectURL(videoData.file)
-    setVideoUrl(url)
-    return () => URL.revokeObjectURL(url)
-  }, [videoData])
-
   // Detect codecs when FFmpeg is ready
   useEffect(() => {
+    console.log("[ConvertScreen] Codec detection check - isReady:", isReady, "hasDetected:", hasDetected, "isDetecting:", isDetecting)
     if (isReady && !hasDetected && !isDetecting) {
+      console.log("[ConvertScreen] Starting codec detection")
       setHasDetected(true)
       detectCodecs().then((info) => {
+        console.log("[ConvertScreen] Codec detection result:", info)
         if (info?.videoCodec && videoData) {
           setVideoData((current) =>
             current ? { ...current, codec: info.videoCodec || undefined } : current
@@ -74,49 +60,21 @@ export function ConvertScreen() {
     }
   }, [isReady, hasDetected, isDetecting, detectCodecs, videoData, setVideoData])
 
-  const togglePlay = () => {
-    if (!videoRef.current) return
-    if (isPlaying) {
-      videoRef.current.pause()
-    } else {
-      videoRef.current.play()
-    }
-    setIsPlaying(!isPlaying)
-  }
-
-  // Redirect to home if no video is loaded
-  useEffect(() => {
-    if (!videoData) {
-      router.push("/")
-    }
-  }, [videoData, router])
-
   const getActionConfig = (): ActionConfig => ({
     type: "convert",
     params: { format, codec },
   })
 
-  if (!videoData) {
-    return null
+  if (isLoading) {
+    return <VideoLoading />
   }
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <Button variant="ghost" onClick={() => router.push("/actions")}>
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Back
-      </Button>
+      <BackButton />
 
       <div className="space-y-4">
-        <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
-          <video ref={videoRef} src={videoUrl} className="w-full h-full object-contain" />
-        </div>
-
-        <div className="flex items-center justify-center">
-          <Button variant="outline" size="lg" className="w-12 h-12 rounded-full bg-transparent" onClick={togglePlay}>
-            {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
-          </Button>
-        </div>
+        <VideoPreview src={videoUrl} />
 
         <div className="bg-secondary/50 rounded-lg p-6 space-y-6">
           <div className="space-y-2">
@@ -157,16 +115,23 @@ export function ConvertScreen() {
                       "Copy (no re-encode)"
                     )}
                   </SelectItem>
-                  <SelectItem value="libx264">H.264 (re-encode)</SelectItem>
-                  <SelectItem value="libx265">H.265 (re-encode)</SelectItem>
-                  <SelectItem value="libvpx-vp9">VP9 (re-encode)</SelectItem>
+                  {/* Only show re-encode options for codecs that differ from input */}
+                  {detectedCodec !== "h264" && (
+                    <SelectItem value="libx264">H.264 (re-encode)</SelectItem>
+                  )}
+                  {detectedCodec !== "hevc" && detectedCodec !== "h265" && (
+                    <SelectItem value="libx265">H.265 (re-encode)</SelectItem>
+                  )}
+                  {detectedCodec !== "vp9" && (
+                    <SelectItem value="libvpx-vp9">VP9 (re-encode)</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
           </div>
 
           <div className="bg-background/50 rounded p-4 text-sm space-y-1">
-            <p className="text-muted-foreground">Current format: {videoData.format || "Unknown"}</p>
+            <p className="text-muted-foreground">Current format: {videoData!.format || "Unknown"}</p>
             <p className="text-muted-foreground flex items-center gap-2">
               Input codec:{" "}
               {isDetecting ? (

@@ -427,16 +427,13 @@ export function useVideoProcessor() {
 
       let uint8Array: Uint8Array
       try {
-        if (videoData.fileData) {
-          console.log("[FFmpeg] Using cached fileData")
-          uint8Array = videoData.fileData
-        } else {
-          console.log("[FFmpeg] Reading file into ArrayBuffer...")
-          const readStartMs = performance.now()
-          const buffer = await videoData.file.arrayBuffer()
-          console.log("[FFmpeg] ArrayBuffer read in", (performance.now() - readStartMs).toFixed(0), "ms")
-          uint8Array = new Uint8Array(buffer)
-        }
+        // Always read fresh from File to avoid detached ArrayBuffer issues
+        // (FFmpeg.writeFile transfers the ArrayBuffer to the worker, making it unusable)
+        console.log("[FFmpeg] Reading file into ArrayBuffer...")
+        const readStartMs = performance.now()
+        const buffer = await videoData.file.arrayBuffer()
+        console.log("[FFmpeg] ArrayBuffer read in", (performance.now() - readStartMs).toFixed(0), "ms")
+        uint8Array = new Uint8Array(buffer)
         console.log("[FFmpeg] Uint8Array length:", uint8Array.length)
       } catch (err) {
         console.error("[FFmpeg] Error reading file:", err)

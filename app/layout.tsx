@@ -5,6 +5,7 @@ import { Header } from "@/components/header"
 import { FFmpegLoader } from "@/components/ffmpeg-loader"
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration"
 import { NavigationGuard } from "@/components/navigation-guard"
+import { BuildInfo } from "@/components/build-info"
 import "./globals.css"
 
 const _geist = Geist({ subsets: ["latin"] })
@@ -46,6 +47,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans antialiased`}>
+        <BuildInfo />
         <ServiceWorkerRegistration />
         <FFmpegLoader />
         <NavigationGuard />
