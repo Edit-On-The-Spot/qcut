@@ -4,7 +4,7 @@
  * Pages are cached on-demand as users navigate to them.
  */
 
-const CACHE_NAME = 'qcut-v7';
+const CACHE_NAME = 'qcut-v8';
 
 // Core assets to cache immediately on install (must exist and return 200)
 const CORE_ASSETS = [
@@ -89,6 +89,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Skip navigation requests (HTML pages) - let Next.js handle SPA navigation
+  // This prevents the SW from interfering with client-side routing
+  if (request.mode === 'navigate') {
+    return;
+  }
+
   // For CDN requests (FFmpeg WASM), use cache-first with network fallback
   if (isCacheableCDN(url)) {
     event.respondWith(
@@ -111,7 +117,15 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For same-origin requests, use stale-while-revalidate strategy
+  // Skip HTML requests - always fetch from network for fresh content
+  const parsedUrl = new URL(url);
+  if (parsedUrl.pathname.endsWith('.html') ||
+      parsedUrl.pathname === '/' ||
+      (!parsedUrl.pathname.includes('.') && parsedUrl.origin === self.location.origin)) {
+    return;
+  }
+
+  // For static assets (JS, CSS, images), use stale-while-revalidate strategy
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       // Start fetch in background to update cache

@@ -37,10 +37,33 @@ export function ServiceWorkerRegistration() {
         .then((registration) => {
           console.log("[SW] Service Worker registered with scope:", registration.scope)
 
+          // Check for updates immediately
+          registration.update()
+
           // Check for updates periodically (every 60 seconds)
           setInterval(() => {
             registration.update()
           }, 60000)
+
+          // If there's a waiting worker, it means an update is available
+          if (registration.waiting) {
+            console.log("[SW] Update available (waiting worker found)")
+            handleReload()
+          }
+
+          // Listen for new workers becoming available
+          registration.addEventListener("updatefound", () => {
+            const newWorker = registration.installing
+            if (newWorker) {
+              console.log("[SW] New service worker installing")
+              newWorker.addEventListener("statechange", () => {
+                if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+                  console.log("[SW] New service worker installed, ready to activate")
+                  // The new worker will activate on next page load or when skipWaiting is called
+                }
+              })
+            }
+          })
         })
         .catch((error) => {
           console.error("[SW] Service Worker registration failed:", error)
