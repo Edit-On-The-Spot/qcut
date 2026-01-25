@@ -1,5 +1,6 @@
 "use client"
 
+import { useCallback } from "react"
 import { atom, useAtom } from "jotai"
 import { FFmpeg } from "@ffmpeg/ffmpeg"
 
@@ -72,6 +73,10 @@ export function useVideo() {
   return { videoData, setVideoData, actionConfig, setActionConfig, reset }
 }
 
+/** Module-level FFmpeg instance to ensure single loading */
+let ffmpegInstance: FFmpeg | null = null
+let ffmpegLoadPromise: Promise<void> | null = null
+
 /**
  * Hook to access FFmpeg instance and loading state.
  * Uses Jotai atoms for state management.
@@ -82,28 +87,50 @@ export function useFFmpeg() {
   const [isLoaded, setIsLoaded] = useAtom(ffmpegLoadedAtom)
   const [message, setMessage] = useAtom(ffmpegMessageAtom)
 
-  const load = async () => {
-    if (isLoaded || ffmpeg) return
+  const load = useCallback(async () => {
+    // If already loaded, just ensure atoms are synced
+    if (ffmpegInstance) {
+      console.log("[useFFmpeg] FFmpeg already loaded, syncing atoms")
+      setFFmpeg(ffmpegInstance)
+      setIsLoaded(true)
+      return
+    }
+
+    // If loading is in progress, wait for it
+    if (ffmpegLoadPromise) {
+      console.log("[useFFmpeg] Load already in progress, waiting")
+      await ffmpegLoadPromise
+      return
+    }
 
     try {
+      console.log("[useFFmpeg] Starting FFmpeg load")
       setMessage("Loading Qcut...")
-      const ffmpegInstance = new FFmpeg()
 
-      ffmpegInstance.on("log", ({ message: logMessage }) => {
-        console.log(logMessage)
-      })
+      ffmpegLoadPromise = (async () => {
+        const instance = new FFmpeg()
 
-      await ffmpegInstance.load()
+        instance.on("log", ({ message: logMessage }) => {
+          console.log(logMessage)
+        })
+
+        await instance.load()
+        ffmpegInstance = instance
+      })()
+
+      await ffmpegLoadPromise
 
       setFFmpeg(ffmpegInstance)
       setIsLoaded(true)
       setMessage("FFmpeg loaded successfully!")
+      console.log("[useFFmpeg] FFmpeg loaded successfully")
     } catch (error) {
+      ffmpegLoadPromise = null
       setMessage(`Error loading FFmpeg: ${(error as Error).message}`)
-      console.error("FFmpeg loading error:", error)
+      console.error("[useFFmpeg] FFmpeg loading error:", error)
       throw error
     }
-  }
+  }, [setFFmpeg, setIsLoaded, setMessage])
 
   return { ffmpeg, isLoaded, message, load }
 }
@@ -151,6 +178,9 @@ export function useProcessingState() {
       // Reset FFmpeg state so it will reload on next use
       setFFmpeg(null)
       setIsLoaded(false)
+      // Also reset module-level state
+      ffmpegInstance = null
+      ffmpegLoadPromise = null
       console.log("[Processing] FFmpeg state reset, will reload on next operation")
     }
     setIsProcessing(false)

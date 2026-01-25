@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { useFFmpeg, useVideo } from "./video-context"
 
 interface CodecInfo {
@@ -19,6 +19,11 @@ export function useCodecDetection() {
   const [codecInfo, setCodecInfo] = useState<CodecInfo | null>(null)
   const [isDetecting, setIsDetecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Log state changes for debugging
+  useEffect(() => {
+    console.log("[CodecDetection] State - isLoaded:", isLoaded, "videoData:", !!videoData, "ffmpeg:", !!ffmpeg)
+  }, [isLoaded, videoData, ffmpeg])
 
   /**
    * Detects codecs by running FFmpeg with -i and parsing the log output.

@@ -8,11 +8,20 @@ import { useFFmpeg } from "@/lib/video-context"
  * Should be placed in the root layout to preload FFmpeg.
  */
 export function FFmpegLoader() {
-  const { load } = useFFmpeg()
+  const { load, isLoaded, ffmpeg } = useFFmpeg()
 
   useEffect(() => {
-    load()
+    console.log("[FFmpegLoader] Initiating FFmpeg load")
+    load().then(() => {
+      console.log("[FFmpegLoader] FFmpeg load complete")
+    }).catch((err) => {
+      console.error("[FFmpegLoader] FFmpeg load failed:", err)
+    })
   }, [load])
+
+  useEffect(() => {
+    console.log("[FFmpegLoader] State - isLoaded:", isLoaded, "ffmpeg:", !!ffmpeg)
+  }, [isLoaded, ffmpeg])
 
   return null
 }
