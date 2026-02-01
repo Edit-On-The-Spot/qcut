@@ -30,6 +30,9 @@ export const QcutFooter = () => {
             <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Privacy
             </Link>
+            <Link href="/cookies" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Cookies
+            </Link>
             <Link href="/contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Contact
             </Link>
