@@ -4,7 +4,7 @@ import { useCallback, useRef, type RefObject } from "react"
 import { snapTimeToFrame, calculateTimeFromMousePosition, timeToFrame } from "./time-utils"
 
 export interface MarkerDragOptions {
-  videoRef: RefObject<HTMLVideoElement>
+  videoRef: RefObject<HTMLVideoElement | null>
   framerate: number
   duration: number
   startTime: number

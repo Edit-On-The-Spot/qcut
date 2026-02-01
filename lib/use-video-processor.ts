@@ -429,7 +429,11 @@ export function useVideoProcessor() {
         }
       }
 
-      ffmpeg.on("progress", ({ progress: prog }) => {
+      // FFmpeg is guaranteed to be loaded at this point (checked above for non-single-frame)
+      // Use non-null assertion since TypeScript can't narrow across the isSingleFrameExtract branch
+      const ffmpegInstance = ffmpeg!
+
+      ffmpegInstance.on("progress", ({ progress: prog }) => {
         setProgress(Math.round(prog * 100))
       })
 
@@ -454,7 +458,7 @@ export function useVideoProcessor() {
       const inputFileName = "input.mp4"
       log.debug("Writing file to virtual filesystem")
       const writeStartMs = performance.now()
-      await ffmpeg.writeFile(inputFileName, uint8Array)
+      await ffmpegInstance.writeFile(inputFileName, uint8Array)
       log.debug("File written in %dms", Math.round(performance.now() - writeStartMs))
 
       if (config.type === "merge") {
@@ -463,7 +467,7 @@ export function useVideoProcessor() {
           throw new Error("Select an audio file to merge before processing.")
         }
         const audioBuffer = new Uint8Array(await audioFile.arrayBuffer())
-        await ffmpeg.writeFile("audio.input", audioBuffer)
+        await ffmpegInstance.writeFile("audio.input", audioBuffer)
       }
 
       if (config.type === "combine") {
@@ -477,18 +481,18 @@ export function useVideoProcessor() {
           const ext = clip.name.split(".").pop()
           const clipName = `clip_${i}${ext ? `.${ext}` : ""}`
           const clipBuffer = new Uint8Array(await clip.arrayBuffer())
-          await ffmpeg.writeFile(clipName, clipBuffer)
+          await ffmpegInstance.writeFile(clipName, clipBuffer)
           clipNames.push(clipName)
         }
         const listContents = clipNames.map((name) => `file '${name}'`).join("\n")
-        await ffmpeg.writeFile("concat.txt", new TextEncoder().encode(listContents))
+        await ffmpegInstance.writeFile("concat.txt", new TextEncoder().encode(listContents))
       }
 
       // Write overlay image file if present (for overlay operation)
       if (config.type === "overlay" && config.params.overlayFile) {
         const overlayBuffer = await (config.params.overlayFile as File).arrayBuffer()
         const overlayUint8 = new Uint8Array(overlayBuffer)
-        await ffmpeg.writeFile("overlay.png", overlayUint8)
+        await ffmpegInstance.writeFile("overlay.png", overlayUint8)
       }
 
       const outputExt = getOutputExtension(config)
@@ -498,14 +502,14 @@ export function useVideoProcessor() {
 
       log.info("Running FFmpeg with args: %o", args)
       const execStartMs = performance.now()
-      await ffmpeg.exec(args)
+      await ffmpegInstance.exec(args)
       log.info("FFmpeg execution completed in %dms", Math.round(performance.now() - execStartMs))
 
       let url: string
       if (config.type === "frame-extract" && config.params.mode !== "single") {
         log.info("Multi-frame mode, listing directory")
         const format = config.params.format || "png"
-        const entries = await ffmpeg.listDir("/")
+        const entries = await ffmpegInstance.listDir("/")
         log.debug("Directory entries:", entries.length)
         const frameFiles = entries
           .filter((entry: { name: string; type?: string }) => entry.type === "file")
@@ -522,7 +526,7 @@ export function useVideoProcessor() {
         const zipStartMs = performance.now()
         const zip = new JSZip()
         for (const name of frameFiles) {
-          const data = await ffmpeg.readFile(name)
+          const data = await ffmpegInstance.readFile(name)
           const blobData = data instanceof Uint8Array ? data.slice().buffer : data
           zip.file(name, blobData)
         }
@@ -530,7 +534,7 @@ export function useVideoProcessor() {
         log.info("ZIP created in %dms, size: %d bytes", Math.round(performance.now() - zipStartMs), zipBlob.size)
         url = URL.createObjectURL(zipBlob)
       } else {
-        const outputData = await ffmpeg.readFile(outputFileName)
+        const outputData = await ffmpegInstance.readFile(outputFileName)
         const mimeType = getMimeType(outputExt)
         const blobData = outputData instanceof Uint8Array ? outputData.slice().buffer : outputData
         const blob = new Blob([blobData], { type: mimeType })
