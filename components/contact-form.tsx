@@ -9,11 +9,29 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
+// Input length limits matching Lambda validation
+const MAX_NAME_LENGTH = 100
+const MAX_EMAIL_LENGTH = 254
+const MAX_SUBJECT_LENGTH = 200
+const MAX_MESSAGE_LENGTH = 5000
+
 const contactFormSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email address"),
-  subject: z.string().min(3, "Subject must be at least 3 characters"),
-  message: z.string().min(10, "Message must be at least 10 characters"),
+  name: z
+    .string()
+    .min(2, "Name must be at least 2 characters")
+    .max(MAX_NAME_LENGTH, `Name must be ${MAX_NAME_LENGTH} characters or less`),
+  email: z
+    .string()
+    .email("Please enter a valid email address")
+    .max(MAX_EMAIL_LENGTH, `Email must be ${MAX_EMAIL_LENGTH} characters or less`),
+  subject: z
+    .string()
+    .min(3, "Subject must be at least 3 characters")
+    .max(MAX_SUBJECT_LENGTH, `Subject must be ${MAX_SUBJECT_LENGTH} characters or less`),
+  message: z
+    .string()
+    .min(10, "Message must be at least 10 characters")
+    .max(MAX_MESSAGE_LENGTH, `Message must be ${MAX_MESSAGE_LENGTH} characters or less`),
 })
 
 type ContactFormData = z.infer<typeof contactFormSchema>
@@ -43,10 +61,12 @@ export function ContactForm() {
     setSubmitStatus(null)
 
     try {
-      // TODO: Replace with actual Lambda endpoint URL
-      const response = await fetch(
-        process.env.NEXT_PUBLIC_CONTACT_API_URL || "https://api-endpoint-placeholder.com/contact",
-        {
+      const apiUrl = process.env.NEXT_PUBLIC_CONTACT_API_URL
+      if (!apiUrl) {
+        throw new Error("Contact form is not configured")
+      }
+
+      const response = await fetch(apiUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

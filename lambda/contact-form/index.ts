@@ -3,6 +3,20 @@ import { SES } from "@aws-sdk/client-ses";
 // Use us-west-2 for SES since that's where the verified identity is configured
 const ses = new SES({ region: process.env.SES_REGION || "us-west-2" });
 
+// Allowed origins for CORS - restrict to production and local development
+const ALLOWED_ORIGINS = [
+  "https://qcut.app",
+  "https://www.qcut.app",
+  "http://localhost:3000",
+  "http://localhost:3001",
+];
+
+// Input length limits to prevent abuse
+const MAX_NAME_LENGTH = 100;
+const MAX_EMAIL_LENGTH = 254; // RFC 5321 limit
+const MAX_SUBJECT_LENGTH = 200;
+const MAX_MESSAGE_LENGTH = 5000;
+
 interface ContactFormData {
   name: string;
   email: string;
@@ -11,8 +25,14 @@ interface ContactFormData {
 }
 
 interface LambdaEvent {
-  body: string;
+  body: string | null;
   headers?: { [key: string]: string };
+  httpMethod?: string;
+  requestContext?: {
+    http?: {
+      method?: string;
+    };
+  };
 }
 
 interface LambdaResponse {
@@ -22,20 +42,37 @@ interface LambdaResponse {
 }
 
 /**
+ * Gets the allowed origin from the request if it matches our allowlist.
+ * Returns the specific origin if allowed, otherwise returns the first allowed origin.
+ */
+function getAllowedOrigin(requestOrigin?: string): string {
+  if (requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin)) {
+    return requestOrigin;
+  }
+  return ALLOWED_ORIGINS[0]; // Default to production origin
+}
+
+/**
  * Lambda handler for processing contact form submissions.
  * Sends emails to REDACTED_EMAIL via AWS SES.
  */
 export const handler = async (event: LambdaEvent): Promise<LambdaResponse> => {
-  // CORS headers
+  // Determine origin from request for CORS
+  const requestOrigin = event.headers?.origin || event.headers?.Origin;
+  const allowedOrigin = getAllowedOrigin(requestOrigin);
+
+  // CORS headers - restricted to allowed origins
   const headers = {
-    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Content-Type": "application/json",
   };
 
   // Handle preflight OPTIONS request
-  if (event.headers && event.headers["X-HTTP-Method"] === "OPTIONS") {
+  // Check both httpMethod and requestContext.http.method for compatibility
+  const httpMethod = event.httpMethod || event.requestContext?.http?.method;
+  if (httpMethod === "OPTIONS") {
     return {
       statusCode: 200,
       headers,
@@ -44,8 +81,41 @@ export const handler = async (event: LambdaEvent): Promise<LambdaResponse> => {
   }
 
   try {
+    // Validate body exists before parsing
+    if (typeof event.body !== "string" || !event.body.trim()) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: "Invalid or missing request body",
+        }),
+      };
+    }
+
     // Parse request body
-    const data: ContactFormData = JSON.parse(event.body);
+    let data: ContactFormData;
+    try {
+      data = JSON.parse(event.body);
+    } catch {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: "Invalid JSON in request body",
+        }),
+      };
+    }
+
+    // Validate parsed data is an object
+    if (typeof data !== "object" || data === null) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: "Request body must be a JSON object",
+        }),
+      };
+    }
 
     // Validate required fields
     if (!data.name || !data.email || !data.subject || !data.message) {
@@ -54,6 +124,60 @@ export const handler = async (event: LambdaEvent): Promise<LambdaResponse> => {
         headers,
         body: JSON.stringify({
           error: "Missing required fields",
+        }),
+      };
+    }
+
+    // Validate field types are strings
+    if (
+      typeof data.name !== "string" ||
+      typeof data.email !== "string" ||
+      typeof data.subject !== "string" ||
+      typeof data.message !== "string"
+    ) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: "All fields must be strings",
+        }),
+      };
+    }
+
+    // Validate input lengths to prevent abuse
+    if (data.name.length > MAX_NAME_LENGTH) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: `Name must be ${MAX_NAME_LENGTH} characters or less`,
+        }),
+      };
+    }
+    if (data.email.length > MAX_EMAIL_LENGTH) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: `Email must be ${MAX_EMAIL_LENGTH} characters or less`,
+        }),
+      };
+    }
+    if (data.subject.length > MAX_SUBJECT_LENGTH) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: `Subject must be ${MAX_SUBJECT_LENGTH} characters or less`,
+        }),
+      };
+    }
+    if (data.message.length > MAX_MESSAGE_LENGTH) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: `Message must be ${MAX_MESSAGE_LENGTH} characters or less`,
         }),
       };
     }
