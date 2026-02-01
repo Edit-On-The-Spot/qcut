@@ -20,7 +20,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { useRequireVideo, markSpaNavigation } from "@/lib/use-require-video"
+import { useRequireVideo } from "@/lib/use-require-video"
 import { VideoLoading } from "@/components/video-loading"
 import type { ActionType } from "@/lib/video-context"
 
@@ -117,7 +117,6 @@ export function ActionsScreen() {
   const { videoData, isLoading } = useRequireVideo()
 
   const handleActionClick = (type: ActionType) => {
-    markSpaNavigation()
     router.push(`/${type}`)
   }
 

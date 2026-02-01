@@ -15,7 +15,6 @@ import { QcutFooter } from "@/components/landing/qcut-footer"
 import { FileSelectModal } from "@/components/file-select-modal"
 import { FileSizeWarning, getFileSizeWarningType } from "@/components/file-size-warning"
 import { useVideo, type ActionType } from "@/lib/video-context"
-import { markSpaNavigation } from "@/lib/use-require-video"
 import { createLogger } from "@/lib/logger"
 
 const log = createLogger("import-screen")
@@ -122,7 +121,6 @@ export function ImportScreen() {
       const action = pendingActionRef.current
       const destination = action ? `/${action}` : "/actions"
       log.debug("Navigating to: %s (pendingAction: %s)", destination, action)
-      markSpaNavigation()
       router.push(destination)
       if (action) {
         setPendingAction(null)

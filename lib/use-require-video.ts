@@ -8,14 +8,6 @@ import { useVideo } from "./video-context"
 const WAIT_TIMEOUT_MS = 500
 
 /**
- * @deprecated No longer needed - kept for backwards compatibility.
- * SPA navigation should preserve atom state automatically.
- */
-export function markSpaNavigation() {
-  // No-op - kept for backwards compatibility
-}
-
-/**
  * Hook that requires video data to be present.
  * Waits briefly for video data to appear (handles SPA navigation timing),
  * then redirects to home if no video data is found.
