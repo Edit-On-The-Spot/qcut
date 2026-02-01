@@ -2,6 +2,9 @@
 
 import { useEffect, useRef } from "react"
 import { useProcessingState } from "@/lib/video-context"
+import { createLogger } from "@/lib/logger"
+
+const log = createLogger("service-worker")
 
 /**
  * Registers the service worker for PWA functionality.
@@ -20,7 +23,7 @@ export function ServiceWorkerRegistration() {
     isProcessingRef.current = isProcessing
     // If processing just finished and a reload was pending, reload now
     if (!isProcessing && reloadScheduledRef.current) {
-      console.log("[SW] Processing finished, reloading for pending update")
+      log.info("Processing finished, reloading for pending update")
       window.location.reload()
     }
   }, [isProcessing])
@@ -32,22 +35,24 @@ export function ServiceWorkerRegistration() {
       "serviceWorker" in navigator &&
       process.env.NODE_ENV === "production"
     ) {
+      let updateIntervalId: ReturnType<typeof setInterval> | null = null
+
       navigator.serviceWorker
         .register("/sw.js")
         .then((registration) => {
-          console.log("[SW] Service Worker registered with scope:", registration.scope)
+          log.info("Service Worker registered with scope: %s", registration.scope)
 
           // Check for updates immediately
           registration.update()
 
           // Check for updates periodically (every 60 seconds)
-          setInterval(() => {
+          updateIntervalId = setInterval(() => {
             registration.update()
           }, 60000)
 
           // If there's a waiting worker, it means an update is available
           if (registration.waiting) {
-            console.log("[SW] Update available (waiting worker found)")
+            log.info("Update available (waiting worker found)")
             handleReload()
           }
 
@@ -55,10 +60,10 @@ export function ServiceWorkerRegistration() {
           registration.addEventListener("updatefound", () => {
             const newWorker = registration.installing
             if (newWorker) {
-              console.log("[SW] New service worker installing")
+              log.info("New service worker installing")
               newWorker.addEventListener("statechange", () => {
                 if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-                  console.log("[SW] New service worker installed, ready to activate")
+                  log.info("New service worker installed, ready to activate")
                   // The new worker will activate on next page load or when skipWaiting is called
                 }
               })
@@ -66,7 +71,7 @@ export function ServiceWorkerRegistration() {
           })
         })
         .catch((error) => {
-          console.error("[SW] Service Worker registration failed:", error)
+          log.error("Service Worker registration failed:", error)
         })
 
       /**
@@ -75,10 +80,10 @@ export function ServiceWorkerRegistration() {
        */
       const handleReload = () => {
         if (!isProcessingRef.current) {
-          console.log("[SW] Reloading page for new version")
+          log.info("Reloading page for new version")
           window.location.reload()
         } else {
-          console.log("[SW] Processing in progress, will reload when done")
+          log.info("Processing in progress, will reload when done")
           reloadScheduledRef.current = true
         }
       }
@@ -86,7 +91,7 @@ export function ServiceWorkerRegistration() {
       // Listen for controller change - fires when new SW takes control
       // This is more reliable than waiting for messages
       const handleControllerChange = () => {
-        console.log("[SW] New service worker took control")
+        log.info("New service worker took control")
         handleReload()
       }
       navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange)
@@ -94,13 +99,18 @@ export function ServiceWorkerRegistration() {
       // Also listen for messages as a backup
       const handleMessage = (event: MessageEvent) => {
         if (event.data?.type === "SW_UPDATED") {
-          console.log("[SW] Received SW_UPDATED message")
+          log.info("Received SW_UPDATED message")
           handleReload()
         }
       }
       navigator.serviceWorker.addEventListener("message", handleMessage)
 
       return () => {
+        // Clear the update interval to prevent memory leak
+        if (updateIntervalId) {
+          clearInterval(updateIntervalId)
+          log.debug("Cleared update interval")
+        }
         navigator.serviceWorker.removeEventListener("controllerchange", handleControllerChange)
         navigator.serviceWorker.removeEventListener("message", handleMessage)
       }

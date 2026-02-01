@@ -16,6 +16,9 @@ import { FileSelectModal } from "@/components/file-select-modal"
 import { FileSizeWarning, getFileSizeWarningType } from "@/components/file-size-warning"
 import { useVideo, type ActionType } from "@/lib/video-context"
 import { markSpaNavigation } from "@/lib/use-require-video"
+import { createLogger } from "@/lib/logger"
+
+const log = createLogger("import-screen")
 
 /**
  * Import screen for selecting video files.
@@ -33,6 +36,7 @@ export function ImportScreen() {
     type: "error" | "warning"
     file: File
   } | null>(null)
+  const [videoLoadError, setVideoLoadError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   // Use ref to avoid stale closure in async callbacks
   const pendingActionRef = useRef<ActionType | null>(null)
@@ -60,12 +64,18 @@ export function ImportScreen() {
   }
 
   const processFile = (file: File) => {
+    // Clear any previous error
+    setVideoLoadError(null)
+
     // Get basic file info
     const sizeInMB = (file.size / (1024 * 1024)).toFixed(2)
+    log.info("Processing file: %s (%sMB)", file.name, sizeInMB)
 
     // Create video element to extract metadata
     const video = document.createElement("video")
     video.preload = "metadata"
+    const objectUrl = URL.createObjectURL(file)
+
     video.onloadedmetadata = () => {
       const info = {
         duration: video.duration,
@@ -73,11 +83,19 @@ export function ImportScreen() {
         height: video.videoHeight,
         size: `${sizeInMB} MB`,
       }
-      URL.revokeObjectURL(video.src)
+      URL.revokeObjectURL(objectUrl)
+      log.debug("Metadata loaded: duration=%d, dimensions=%dx%d", info.duration, info.width, info.height)
       // Navigate immediately after metadata is loaded
       navigateToActions(file, info)
     }
-    video.src = URL.createObjectURL(file)
+
+    video.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      log.error("Failed to load video metadata for: %s", file.name)
+      setVideoLoadError("Unable to load video. The file may be corrupted or in an unsupported format.")
+    }
+
+    video.src = objectUrl
   }
 
   /**
@@ -89,7 +107,7 @@ export function ImportScreen() {
     file: File,
     info: { duration: number; width: number; height: number; size: string }
   ) => {
-    console.log("[ImportScreen] Setting video data:", file.name)
+    log.info("Setting video data: %s", file.name)
     setVideoData({
       file,
       duration: info.duration,
@@ -103,7 +121,7 @@ export function ImportScreen() {
       // Use ref to get latest pending action (avoids stale closure)
       const action = pendingActionRef.current
       const destination = action ? `/${action}` : "/actions"
-      console.log("[ImportScreen] Navigating to:", destination, "pendingAction:", action)
+      log.debug("Navigating to: %s (pendingAction: %s)", destination, action)
       markSpaNavigation()
       router.push(destination)
       if (action) {
@@ -189,6 +207,19 @@ export function ImportScreen() {
             processFile(file)
           }}
         />
+      )}
+
+      {/* Video load error toast */}
+      {videoLoadError && (
+        <div className="fixed bottom-4 right-4 z-50 bg-destructive text-destructive-foreground px-4 py-3 rounded-md shadow-lg flex items-center gap-3">
+          <span>{videoLoadError}</span>
+          <button
+            onClick={() => setVideoLoadError(null)}
+            className="text-destructive-foreground/70 hover:text-destructive-foreground"
+          >
+            &times;
+          </button>
+        </div>
       )}
     </div>
   )

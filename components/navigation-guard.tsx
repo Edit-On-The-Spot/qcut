@@ -1,8 +1,9 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useProcessingState } from "@/lib/video-context"
+import { createLogger } from "@/lib/logger"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,7 +14,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { useState } from "react"
+
+const log = createLogger("navigation-guard")
 
 /**
  * Navigation guard that warns users when trying to navigate away during processing.
@@ -26,9 +28,15 @@ export function NavigationGuard() {
   const [pendingUrl, setPendingUrl] = useState<string | null>(null)
   const router = useRouter()
   const isNavigatingRef = useRef(false)
+  // Track whether we've already pushed state for this processing session
+  const hasPushedStateRef = useRef(false)
 
   useEffect(() => {
-    if (!isProcessing) return
+    if (!isProcessing) {
+      // Reset the flag when processing ends
+      hasPushedStateRef.current = false
+      return
+    }
 
     // Intercept link clicks
     const handleClick = (e: MouseEvent) => {
@@ -41,6 +49,7 @@ export function NavigationGuard() {
         if (url.origin === window.location.origin && url.pathname !== window.location.pathname) {
           e.preventDefault()
           e.stopPropagation()
+          log.debug("Intercepted navigation to: %s", url.pathname)
           setPendingUrl(url.pathname)
           setShowDialog(true)
         }
@@ -52,13 +61,18 @@ export function NavigationGuard() {
       if (isProcessing && !isNavigatingRef.current) {
         // Push current state back to prevent navigation
         window.history.pushState(null, "", window.location.href)
+        log.debug("Intercepted back navigation")
         setShowDialog(true)
         setPendingUrl(null) // Will use history.back() instead
       }
     }
 
-    // Push a state so we can detect back navigation
-    window.history.pushState(null, "", window.location.href)
+    // Push a state so we can detect back navigation - only once per processing session
+    if (!hasPushedStateRef.current) {
+      window.history.pushState(null, "", window.location.href)
+      hasPushedStateRef.current = true
+      log.debug("Pushed history state for navigation guard")
+    }
 
     document.addEventListener("click", handleClick, true)
     window.addEventListener("popstate", handlePopState)

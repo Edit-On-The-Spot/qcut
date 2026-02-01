@@ -3,6 +3,9 @@
 import { useCallback } from "react"
 import { atom, useAtom } from "jotai"
 import { FFmpeg } from "@ffmpeg/ffmpeg"
+import { createLogger } from "./logger"
+
+const log = createLogger("video-context")
 
 export type ActionType =
   | "convert"
@@ -64,10 +67,15 @@ export const processingAbortControllerAtom = atom<AbortController | null>(null)
 export function useVideo() {
   const [videoData, setVideoData] = useAtom(videoDataAtom)
   const [actionConfig, setActionConfig] = useAtom(actionConfigAtom)
+  const [, setThumbnailCache] = useAtom(thumbnailCacheAtom)
 
   const reset = () => {
+    log.info("Resetting video state")
     setVideoData(null)
     setActionConfig(null)
+    // Clear thumbnail cache to prevent memory leak
+    setThumbnailCache(new Map())
+    log.debug("Thumbnail cache cleared")
   }
 
   return { videoData, setVideoData, actionConfig, setActionConfig, reset }
@@ -90,7 +98,7 @@ export function useFFmpeg() {
   const load = useCallback(async () => {
     // If already loaded, just ensure atoms are synced
     if (ffmpegInstance) {
-      console.log("[useFFmpeg] FFmpeg already loaded, syncing atoms")
+      log.debug("FFmpeg already loaded, syncing atoms")
       setFFmpeg(ffmpegInstance)
       setIsLoaded(true)
       return
@@ -98,20 +106,20 @@ export function useFFmpeg() {
 
     // If loading is in progress, wait for it
     if (ffmpegLoadPromise) {
-      console.log("[useFFmpeg] Load already in progress, waiting")
+      log.debug("Load already in progress, waiting")
       await ffmpegLoadPromise
       return
     }
 
     try {
-      console.log("[useFFmpeg] Starting FFmpeg load")
+      log.info("Starting FFmpeg load")
       setMessage("Loading Qcut...")
 
       ffmpegLoadPromise = (async () => {
         const instance = new FFmpeg()
 
         instance.on("log", ({ message: logMessage }) => {
-          console.log(logMessage)
+          log.debug("FFmpeg: %s", logMessage)
         })
 
         await instance.load()
@@ -123,11 +131,11 @@ export function useFFmpeg() {
       setFFmpeg(ffmpegInstance)
       setIsLoaded(true)
       setMessage("FFmpeg loaded successfully!")
-      console.log("[useFFmpeg] FFmpeg loaded successfully")
+      log.info("FFmpeg loaded successfully")
     } catch (error) {
       ffmpegLoadPromise = null
       setMessage(`Error loading FFmpeg: ${(error as Error).message}`)
-      console.error("[useFFmpeg] FFmpeg loading error:", error)
+      log.error("FFmpeg loading error:", error)
       throw error
     }
   }, [setFFmpeg, setIsLoaded, setMessage])
@@ -162,7 +170,7 @@ export function useProcessingState() {
    * Also resets FFmpeg state so it will reload on next use.
    */
   const cancelProcessing = async () => {
-    console.log("[Processing] Cancelling processing...")
+    log.info("Cancelling processing")
     if (abortController) {
       abortController.abort()
       setAbortController(null)
@@ -171,9 +179,9 @@ export function useProcessingState() {
       try {
         // Terminate will stop any running FFmpeg operation
         ffmpeg.terminate()
-        console.log("[Processing] FFmpeg terminated")
+        log.info("FFmpeg terminated")
       } catch (err) {
-        console.warn("[Processing] Error terminating FFmpeg:", err)
+        log.warn("Error terminating FFmpeg:", err)
       }
       // Reset FFmpeg state so it will reload on next use
       setFFmpeg(null)
@@ -181,7 +189,7 @@ export function useProcessingState() {
       // Also reset module-level state
       ffmpegInstance = null
       ffmpegLoadPromise = null
-      console.log("[Processing] FFmpeg state reset, will reload on next operation")
+      log.debug("FFmpeg state reset, will reload on next operation")
     }
     setIsProcessing(false)
   }
