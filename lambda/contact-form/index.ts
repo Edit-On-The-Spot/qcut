@@ -7,6 +7,8 @@ const ses = new SES({ region: process.env.SES_REGION || "us-west-2" });
 const ALLOWED_ORIGINS = [
   "https://qcut.app",
   "https://www.qcut.app",
+  "https://qcut.ai",
+  "https://www.qcut.ai",
   "http://localhost:3000",
   "http://localhost:3001",
 ];
