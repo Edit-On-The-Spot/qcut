@@ -1,4 +1,5 @@
 import type React from "react"
+import { Suspense } from "react"
 import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import Script from "next/script"
@@ -7,6 +8,7 @@ import { FFmpegLoader } from "@/components/ffmpeg-loader"
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration"
 import { NavigationGuard } from "@/components/navigation-guard"
 import { BuildInfo } from "@/components/build-info"
+import { AnalyticsTracker } from "@/components/analytics-tracker"
 import "./globals.css"
 
 const _geist = Geist({ subsets: ["latin"] })
@@ -60,6 +62,9 @@ export default function RootLayout({
             gtag('config', 'G-8508P87GEX');
           `}
         </Script>
+        <Suspense fallback={null}>
+          <AnalyticsTracker />
+        </Suspense>
         <BuildInfo />
         <ServiceWorkerRegistration />
         <FFmpegLoader />

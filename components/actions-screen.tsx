@@ -24,6 +24,7 @@ import { Card } from "@/components/ui/card"
 import { useRequireVideo } from "@/lib/use-require-video"
 import { VideoLoading } from "@/components/video-loading"
 import type { ActionType } from "@/lib/video-context"
+import { trackActionSelect } from "@/lib/analytics"
 
 /**
  * Available video operations, ordered to match landing page features.
@@ -155,6 +156,7 @@ export function ActionsScreen() {
   }, [videoData?.file])
 
   const handleActionClick = (type: ActionType) => {
+    trackActionSelect(type)
     router.push(`/${type}`)
   }
 

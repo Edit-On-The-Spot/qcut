@@ -4,6 +4,12 @@ import { useState, useCallback, useRef } from "react"
 import JSZip from "jszip"
 import { useFFmpeg, useVideo, useProcessingState, type ActionConfig } from "./video-context"
 import { createLogger } from "./logger"
+import {
+  trackProcessingStart,
+  trackProcessingComplete,
+  trackProcessingError,
+  trackDownload,
+} from "./analytics"
 
 const log = createLogger("processor")
 
@@ -281,6 +287,8 @@ export function useVideoProcessor() {
     setError(null)
     setIsComplete(false)
     setOutputUrl(null)
+    const processingStartMs = performance.now()
+    trackProcessingStart(config.type)
 
     try {
       if (isSingleFrameExtract) {
@@ -416,12 +424,16 @@ export function useVideoProcessor() {
           setOutputUrl(url)
           setProgress(100)
           setIsComplete(true)
-          log.info("Frame extraction complete, triggering download")
+          const durationMs = Math.round(performance.now() - processingStartMs)
+          trackProcessingComplete(config.type, durationMs)
+          log.info("Frame extraction complete in %dms, triggering download", durationMs)
 
           const a = document.createElement("a")
           a.href = url
           a.download = `${videoData.file.name.replace(/\.[^/.]+$/, "")}_frame.${format}`
           a.click()
+          const fileSizeMB = blob.size / (1024 * 1024)
+          trackDownload(config.type, fileSizeMB)
           return
         } finally {
           URL.revokeObjectURL(objectUrl)
@@ -550,14 +562,25 @@ export function useVideoProcessor() {
       setOutputUrl(url)
       setProgress(100)
       setIsComplete(true)
+      const durationMs = Math.round(performance.now() - processingStartMs)
+      trackProcessingComplete(config.type, durationMs)
 
       // Auto-download
       const a = document.createElement("a")
       a.href = url
       a.download = `${videoData.file.name.replace(/\.[^/.]+$/, "")}_${config.type}.${outputExt}`
       a.click()
+      // Estimate file size from blob URL - use a fetch to get actual size
+      fetch(url).then(res => res.blob()).then(blob => {
+        trackDownload(config.type, blob.size / (1024 * 1024))
+      }).catch(() => {
+        // Track download anyway with 0 size if fetch fails
+        trackDownload(config.type, 0)
+      })
     } catch (err) {
-      setError(`Error processing video: ${(err as Error).message}`)
+      const errorMessage = (err as Error).message
+      trackProcessingError(config.type, errorMessage)
+      setError(`Error processing video: ${errorMessage}`)
     } finally {
       finishProcessing()
     }
@@ -570,6 +593,12 @@ export function useVideoProcessor() {
       a.href = outputUrl
       a.download = `${videoData?.file.name.replace(/\.[^/.]+$/, "") || "output"}_${config.type}.${outputExt}`
       a.click()
+      // Track manual re-download
+      fetch(outputUrl).then(res => res.blob()).then(blob => {
+        trackDownload(config.type, blob.size / (1024 * 1024))
+      }).catch(() => {
+        trackDownload(config.type, 0)
+      })
     }
   }, [outputUrl, videoData])
 

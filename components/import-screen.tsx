@@ -16,6 +16,7 @@ import { FileSelectModal } from "@/components/file-select-modal"
 import { FileSizeWarning, getFileSizeWarningType } from "@/components/file-size-warning"
 import { useVideo, type ActionType } from "@/lib/video-context"
 import { createLogger } from "@/lib/logger"
+import { trackVideoImport, trackVideoImportError, trackFeatureClick } from "@/lib/analytics"
 
 const log = createLogger("import-screen")
 
@@ -91,7 +92,9 @@ export function ImportScreen() {
     video.onerror = () => {
       URL.revokeObjectURL(objectUrl)
       log.error("Failed to load video metadata for: %s", file.name)
-      setVideoLoadError("Unable to load video. The file may be corrupted or in an unsupported format.")
+      const errorMsg = "Unable to load video. The file may be corrupted or in an unsupported format."
+      trackVideoImportError(errorMsg)
+      setVideoLoadError(errorMsg)
     }
 
     video.src = objectUrl
@@ -107,6 +110,8 @@ export function ImportScreen() {
     info: { duration: number; width: number; height: number; size: string }
   ) => {
     log.info("Setting video data: %s", file.name)
+    const fileSizeMB = file.size / (1024 * 1024)
+    trackVideoImport(file.name, fileSizeMB)
     setVideoData({
       file,
       duration: info.duration,
@@ -147,6 +152,7 @@ export function ImportScreen() {
     pendingActionRef.current = actionType
     setPendingAction(actionType)
     setIsModalOpen(true)
+    trackFeatureClick(actionType)
   }
 
   /**
