@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import {
   Repeat,
@@ -13,10 +14,10 @@ import {
   Grid3x3,
   Layers,
   ArrowLeft,
-  FileVideo,
   Volume2,
   RotateCw,
   Image,
+  CheckCircle2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -115,6 +116,43 @@ const actions: Array<{
 export function ActionsScreen() {
   const router = useRouter()
   const { videoData, isLoading } = useRequireVideo()
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null)
+
+  // Generate thumbnail from video file
+  useEffect(() => {
+    if (!videoData?.file) return
+
+    const video = document.createElement("video")
+    const objectUrl = URL.createObjectURL(videoData.file)
+    video.src = objectUrl
+    video.preload = "metadata"
+    video.muted = true
+
+    video.onloadeddata = () => {
+      // Seek to 1 second or 10% of duration for thumbnail
+      video.currentTime = Math.min(1, (video.duration || 1) * 0.1)
+    }
+
+    video.onseeked = () => {
+      const canvas = document.createElement("canvas")
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+      const ctx = canvas.getContext("2d")
+      if (ctx) {
+        ctx.drawImage(video, 0, 0)
+        setThumbnailUrl(canvas.toDataURL("image/jpeg", 0.7))
+      }
+      URL.revokeObjectURL(objectUrl)
+    }
+
+    video.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+    }
+
+    return () => {
+      URL.revokeObjectURL(objectUrl)
+    }
+  }, [videoData?.file])
 
   const handleActionClick = (type: ActionType) => {
     router.push(`/${type}`)
@@ -147,8 +185,19 @@ export function ActionsScreen() {
 
       <Card className="p-6">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-lg bg-accent/20 flex items-center justify-center">
-            <FileVideo className="w-6 h-6 text-accent" />
+          {/* Video thumbnail */}
+          <div className="w-24 h-16 rounded-lg bg-muted overflow-hidden flex-shrink-0">
+            {thumbnailUrl ? (
+              <img
+                src={thumbnailUrl}
+                alt="Video thumbnail"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-medium truncate">{videoData.file.name}</p>
@@ -158,6 +207,11 @@ export function ActionsScreen() {
               <span>{formatFileSize(videoData.file.size)}</span>
               <span>{videoData.format}</span>
             </div>
+          </div>
+          {/* Ready for processing badge */}
+          <div className="flex items-center gap-2 text-sm text-green-500 flex-shrink-0">
+            <CheckCircle2 className="w-4 h-4" />
+            <span>Ready for processing</span>
           </div>
         </div>
       </Card>
@@ -173,12 +227,12 @@ export function ActionsScreen() {
           return (
             <Card
               key={action.type}
-              className="p-6 hover:border-accent transition-colors cursor-pointer group"
+              className="p-6 border-2 border-transparent hover:border-primary transition-all cursor-pointer group"
               onClick={() => handleActionClick(action.type)}
             >
               <div className="space-y-4">
-                <div className="w-12 h-12 rounded-lg bg-secondary group-hover:bg-accent/20 flex items-center justify-center transition-colors">
-                  <Icon className="w-6 h-6 text-muted-foreground group-hover:text-accent transition-colors" />
+                <div className="w-12 h-12 rounded-lg bg-secondary group-hover:bg-primary flex items-center justify-center transition-colors">
+                  <Icon className="w-6 h-6 text-muted-foreground group-hover:text-primary-foreground transition-colors" />
                 </div>
                 <div className="space-y-1">
                   <h3 className="font-semibold">{action.label}</h3>
