@@ -1,10 +1,35 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { Download, RotateCcw, CheckCircle2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { type ActionConfig } from "@/lib/video-context"
 import { useVideoProcessor } from "@/lib/use-video-processor"
+
+/**
+ * Formats a duration in milliseconds to a human-readable string.
+ * e.g., 125000 -> "2m 5s", 45000 -> "45s"
+ */
+function formatDuration(ms: number): string {
+  const totalSeconds = Math.ceil(ms / 1000)
+  if (totalSeconds < 60) {
+    return `${totalSeconds}s`
+  }
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  if (seconds === 0) {
+    return `${minutes}m`
+  }
+  return `${minutes}m ${seconds}s`
+}
+
+/**
+ * Formats a Date to a wall clock time string.
+ * e.g., "3:45 PM"
+ */
+function formatWallClockTime(date: Date): string {
+  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+}
 
 interface ProcessingButtonProps {
   config: ActionConfig
@@ -22,6 +47,7 @@ export function ProcessingButton({ config, onReset }: ProcessingButtonProps) {
     isProcessing,
     isComplete,
     progress,
+    processingStartTimeMs,
     error,
     process,
     download,
@@ -29,6 +55,33 @@ export function ProcessingButton({ config, onReset }: ProcessingButtonProps) {
     resetAll,
   } = useVideoProcessor()
   const requiresFfmpeg = !(config.type === "frame-extract" && config.params.mode === "single")
+
+  // Update current time every second for ETA calculation
+  const [currentTimeMs, setCurrentTimeMs] = useState(() => performance.now())
+  useEffect(() => {
+    if (!isProcessing) return
+    const interval = setInterval(() => {
+      setCurrentTimeMs(performance.now())
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [isProcessing])
+
+  // Calculate ETA based on elapsed time and progress
+  const eta = (() => {
+    if (!isProcessing || !processingStartTimeMs || progress <= 0 || progress >= 100) {
+      return null
+    }
+    const elapsedMs = currentTimeMs - processingStartTimeMs
+    // Estimate total time based on current progress
+    const estimatedTotalMs = elapsedMs / (progress / 100)
+    const remainingMs = Math.max(0, estimatedTotalMs - elapsedMs)
+    const completionTime = new Date(Date.now() + remainingMs)
+    return {
+      remainingMs,
+      remainingFormatted: formatDuration(remainingMs),
+      completionTime: formatWallClockTime(completionTime),
+    }
+  })()
 
   // Warn user before navigating away during processing to prevent losing work
   useEffect(() => {
@@ -86,6 +139,11 @@ export function ProcessingButton({ config, onReset }: ProcessingButtonProps) {
             style={{ width: `${progress}%` }}
           />
         </div>
+        {eta && (
+          <div className="text-sm text-muted-foreground text-center">
+            {eta.remainingFormatted} remaining · Done by {eta.completionTime}
+          </div>
+        )}
       </div>
     )
   }

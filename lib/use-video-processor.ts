@@ -28,6 +28,8 @@ export function useVideoProcessor() {
   const [error, setError] = useState<string | null>(null)
   // Track current output URL ref for cleanup to prevent memory leaks
   const outputUrlRef = useRef<string | null>(null)
+  // Track when processing started for ETA calculation
+  const [processingStartTimeMs, setProcessingStartTimeMs] = useState<number | null>(null)
 
   const getOutputExtension = (config: ActionConfig): string => {
     switch (config.type) {
@@ -288,6 +290,7 @@ export function useVideoProcessor() {
     setIsComplete(false)
     setOutputUrl(null)
     const processingStartMs = performance.now()
+    setProcessingStartTimeMs(processingStartMs)
     trackProcessingStart(config.type)
 
     try {
@@ -424,6 +427,7 @@ export function useVideoProcessor() {
           setOutputUrl(url)
           setProgress(100)
           setIsComplete(true)
+          setProcessingStartTimeMs(null)
           const durationMs = Math.round(performance.now() - processingStartMs)
           trackProcessingComplete(config.type, durationMs)
           log.info("Frame extraction complete in %dms, triggering download", durationMs)
@@ -562,6 +566,7 @@ export function useVideoProcessor() {
       setOutputUrl(url)
       setProgress(100)
       setIsComplete(true)
+      setProcessingStartTimeMs(null)
       const durationMs = Math.round(performance.now() - processingStartMs)
       trackProcessingComplete(config.type, durationMs)
 
@@ -614,6 +619,7 @@ export function useVideoProcessor() {
     setProgress(0)
     setOutputUrl(null)
     setError(null)
+    setProcessingStartTimeMs(null)
   }, [finishProcessing])
 
   return {
@@ -621,6 +627,7 @@ export function useVideoProcessor() {
     isProcessing,
     isComplete,
     progress,
+    processingStartTimeMs,
     error,
     process,
     download,
