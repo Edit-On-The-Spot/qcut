@@ -10,6 +10,7 @@ import {
   trackProcessingError,
   trackDownload,
 } from "./analytics"
+import { createGifWithGifenc, shouldUseGifenc, type GifProgress } from "./gif-encoder"
 
 const log = createLogger("processor")
 
@@ -275,11 +276,20 @@ export function useVideoProcessor() {
 
   const process = useCallback(async (config: ActionConfig) => {
     const isSingleFrameExtract = config.type === "frame-extract" && config.params.mode === "single"
+
+    // Check if this is a short GIF that should use gifenc
+    const isGifWithGifenc = config.type === "gif" && (() => {
+      const startSec = Number.parseFloat(config.params.start || "0")
+      const endSec = Number.parseFloat(config.params.end || "3")
+      const durationSec = endSec - startSec
+      return shouldUseGifenc(durationSec)
+    })()
+
     if (!videoData) {
       setError("No video is loaded yet. Please select a video first.")
       return
     }
-    if (!isSingleFrameExtract && (!ffmpeg || !isLoaded)) {
+    if (!isSingleFrameExtract && !isGifWithGifenc && (!ffmpeg || !isLoaded)) {
       setError("FFmpeg is not loaded yet. Please wait.")
       return
     }
@@ -443,6 +453,55 @@ export function useVideoProcessor() {
           URL.revokeObjectURL(objectUrl)
           log.debug("Cleaned up object URL")
         }
+      }
+
+      // Handle short GIF clips with gifenc (2-3x faster than ffmpeg.wasm)
+      if (isGifWithGifenc) {
+        log.info("Using gifenc for fast GIF creation")
+        const startSec = Number.parseFloat(config.params.start || "0")
+        const endSec = Number.parseFloat(config.params.end || "3")
+        const fps = config.params.fps || 10
+        const width = config.params.scale || 480
+
+        const handleGifProgress = (progress: GifProgress) => {
+          // Map the two phases to a 0-100 progress
+          // Extracting: 0-60%, Encoding: 60-100%
+          if (progress.phase === "extracting") {
+            setProgress(Math.round((progress.current / progress.total) * 60))
+          } else {
+            setProgress(60 + Math.round((progress.current / progress.total) * 40))
+          }
+        }
+
+        const blob = await createGifWithGifenc(
+          videoData.file,
+          { startSec, endSec, fps, width },
+          handleGifProgress
+        )
+
+        const url = URL.createObjectURL(blob)
+        // Revoke previous URL to prevent memory leak
+        if (outputUrlRef.current) {
+          URL.revokeObjectURL(outputUrlRef.current)
+          log.debug("Revoked previous output URL")
+        }
+        outputUrlRef.current = url
+        setOutputUrl(url)
+        setProgress(100)
+        setIsComplete(true)
+        setProcessingStartTimeMs(null)
+        const durationMs = Math.round(performance.now() - processingStartMs)
+        trackProcessingComplete(config.type, durationMs)
+        log.info("GIF creation complete in %dms (gifenc)", durationMs)
+
+        // Auto-download
+        const a = document.createElement("a")
+        a.href = url
+        a.download = `${videoData.file.name.replace(/\.[^/.]+$/, "")}_${config.type}.gif`
+        a.click()
+        const fileSizeMB = blob.size / (1024 * 1024)
+        trackDownload(config.type, fileSizeMB)
+        return
       }
 
       // FFmpeg is guaranteed to be loaded at this point (checked above for non-single-frame)
