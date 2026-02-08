@@ -10,15 +10,15 @@
 #
 # Infrastructure:
 #   - S3 bucket: qcut.app
-#   - CloudFront distribution: REDACTED_CLOUDFRONT_ID
+#   - CloudFront distribution: set via CLOUDFRONT_DISTRIBUTION_ID env var
 #   - Domain: https://qcut.app
-#   - ACM certificate: arn:aws:acm:us-east-1:REDACTED_AWS_ACCOUNT_ID:certificate/REDACTED_CERT_UUID
+#   - ACM certificate: set via AWS console
 
 set -e
 
-AWS_PROFILE=editonthespot
-S3_BUCKET=qcut.app
-CLOUDFRONT_DISTRIBUTION_ID=REDACTED_CLOUDFRONT_ID
+AWS_PROFILE="${AWS_PROFILE:-editonthespot}"
+S3_BUCKET="${S3_BUCKET:-qcut.app}"
+CLOUDFRONT_DISTRIBUTION_ID="${CLOUDFRONT_DISTRIBUTION_ID:?CLOUDFRONT_DISTRIBUTION_ID env var is required}"
 
 echo "=== qcut.app Deploy ==="
 echo ""

@@ -8,8 +8,8 @@ set -e
 FUNCTION_NAME="qcut-contact-form"
 ROLE_NAME="qcut-contact-form-lambda-role"
 REGION="${AWS_REGION:-us-east-1}"
-FROM_EMAIL="${FROM_EMAIL:-qcut@editonthespot.com}"
-TO_EMAIL="${TO_EMAIL:-REDACTED_EMAIL}"
+FROM_EMAIL="${FROM_EMAIL:?FROM_EMAIL env var is required}"
+TO_EMAIL="${TO_EMAIL:?TO_EMAIL env var is required}"
 
 # Colors for output
 RED='\033[0;31m'

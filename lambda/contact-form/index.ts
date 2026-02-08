@@ -56,9 +56,13 @@ function getAllowedOrigin(requestOrigin?: string): string {
 
 /**
  * Lambda handler for processing contact form submissions.
- * Sends emails to REDACTED_EMAIL via AWS SES.
+ * Sends emails via AWS SES using FROM_EMAIL and TO_EMAIL env vars.
  */
 export const handler = async (event: LambdaEvent): Promise<LambdaResponse> => {
+  if (!process.env.FROM_EMAIL || !process.env.TO_EMAIL) {
+    throw new Error("FROM_EMAIL and TO_EMAIL environment variables are required");
+  }
+
   // Determine origin from request for CORS
   const requestOrigin = event.headers?.origin || event.headers?.Origin;
   const allowedOrigin = getAllowedOrigin(requestOrigin);
@@ -198,9 +202,9 @@ export const handler = async (event: LambdaEvent): Promise<LambdaResponse> => {
 
     // Prepare email content
     const emailParams = {
-      Source: process.env.FROM_EMAIL || "qcut@editonthespot.com",
+      Source: process.env.FROM_EMAIL!,
       Destination: {
-        ToAddresses: [process.env.TO_EMAIL || "REDACTED_EMAIL"],
+        ToAddresses: [process.env.TO_EMAIL!],
       },
       Message: {
         Subject: {

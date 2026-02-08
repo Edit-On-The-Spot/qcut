@@ -9,8 +9,9 @@ out/
 .DS_Store
 *.pem
 
-# local env files
+# env files
 .env*.local
+.env.production
 
 # vercel
 .vercel
