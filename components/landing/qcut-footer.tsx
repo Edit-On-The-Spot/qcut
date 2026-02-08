@@ -37,10 +37,10 @@ export const QcutFooter = () => {
               Contact
             </Link>
             <div className="flex items-center gap-4 ml-4">
-              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors" aria-label="GitHub">
+              <a href="https://github.com/Edit-On-The-Spot/qcut" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" aria-label="GitHub">
                 <Github className="h-5 w-5" />
               </a>
-              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors" aria-label="Twitter">
+              <a href="https://x.com/editonthespot" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" aria-label="Twitter">
                 <Twitter className="h-5 w-5" />
               </a>
             </div>
