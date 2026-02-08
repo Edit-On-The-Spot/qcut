@@ -5,7 +5,6 @@ import { Geist, Geist_Mono } from "next/font/google"
 import Script from "next/script"
 import { Header } from "@/components/header"
 import { FFmpegLoader } from "@/components/ffmpeg-loader"
-import { ServiceWorkerRegistration } from "@/components/service-worker-registration"
 import { NavigationGuard } from "@/components/navigation-guard"
 import { BuildInfo } from "@/components/build-info"
 import { AnalyticsTracker } from "@/components/analytics-tracker"
@@ -66,7 +65,6 @@ export default function RootLayout({
           <AnalyticsTracker />
         </Suspense>
         <BuildInfo />
-        <ServiceWorkerRegistration />
         <FFmpegLoader />
         <NavigationGuard />
         <Header />
