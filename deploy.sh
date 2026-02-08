@@ -16,6 +16,13 @@
 
 set -e
 
+# Source deploy config if available
+if [ -f .deploy.env ]; then
+  set -a
+  source .deploy.env
+  set +a
+fi
+
 AWS_PROFILE="${AWS_PROFILE:-editonthespot}"
 S3_BUCKET="${S3_BUCKET:-qcut.app}"
 CLOUDFRONT_DISTRIBUTION_ID="${CLOUDFRONT_DISTRIBUTION_ID:?CLOUDFRONT_DISTRIBUTION_ID env var is required}"

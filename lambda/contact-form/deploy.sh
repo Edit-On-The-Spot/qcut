@@ -5,6 +5,13 @@
 
 set -e
 
+# Source deploy config if available (check both local and project root)
+if [ -f .deploy.env ]; then
+  set -a; source .deploy.env; set +a
+elif [ -f ../../.deploy.env ]; then
+  set -a; source ../../.deploy.env; set +a
+fi
+
 FUNCTION_NAME="qcut-contact-form"
 ROLE_NAME="qcut-contact-form-lambda-role"
 REGION="${AWS_REGION:-us-east-1}"
