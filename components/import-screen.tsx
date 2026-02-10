@@ -183,6 +183,7 @@ export function ImportScreen() {
         ref={fileInputRef}
         type="file"
         accept="video/*"
+        aria-label="Select video file"
         onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
         className="sr-only"
       />

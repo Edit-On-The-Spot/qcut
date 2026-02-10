@@ -51,7 +51,7 @@ export const QcutFooter = () => {
           <p className="text-sm text-muted-foreground">
             Qcut is brought to you by <a href="https://www.editonthespot.com/" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors font-medium">Edit on the Spot</a>
           </p>
-          <p className="text-xs text-muted-foreground/60">
+          <p className="text-xs text-muted-foreground">
             Copyright © 2026 Edit on the Spot.
           </p>
         </div>
