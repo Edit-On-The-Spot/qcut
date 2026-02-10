@@ -1,9 +1,10 @@
 import { ContactForm } from "@/components/contact-form"
+import { createPageMetadata } from "@/lib/seo"
 
-export const metadata = {
+export const metadata = createPageMetadata("/contact", {
   title: "Contact Us - Qcut",
   description: "Get in touch with the Qcut team. We're here to help with questions, feedback, or support.",
-}
+})
 
 /**
  * Contact page that displays the contact form.

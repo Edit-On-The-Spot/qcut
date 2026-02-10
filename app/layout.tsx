@@ -27,9 +27,17 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://qcut.app"),
   title: "Qcut - Lightning-fast in-browser video editor",
   description: "Simple, powerful video editing powered by FFmpeg",
   generator: "v0.app",
+  alternates: {
+    canonical: "/",
+    languages: {
+      en: "/",
+      "x-default": "/",
+    },
+  },
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

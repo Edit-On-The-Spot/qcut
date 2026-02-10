@@ -1,9 +1,9 @@
-import type { Metadata } from "next"
+import { createPageMetadata } from "@/lib/seo"
 
-export const metadata: Metadata = {
+export const metadata = createPageMetadata("/terms", {
   title: "Terms of Service - Qcut",
   description: "Terms of Service for Qcut video editor",
-}
+})
 
 export default function TermsPage() {
   return (
