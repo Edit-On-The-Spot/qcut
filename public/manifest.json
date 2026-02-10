@@ -1,5 +1,5 @@
 {
-  "name": "qcut.app - Swiss Army Knife Video Editor",
+  "name": "Qcut - Lightning-fast in-browser video editor",
   "short_name": "qcut",
   "description": "Simple, powerful video editing powered by FFmpeg",
   "start_url": "/",
