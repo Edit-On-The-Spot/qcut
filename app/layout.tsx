@@ -62,6 +62,60 @@ export default function RootLayout({
             gtag('config', 'G-8508P87GEX');
           `}
         </Script>
+        <Script id="schema-website" type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            url: "https://qcut.app/",
+            name: "Qcut",
+            description:
+              "Qcut is a lightning-fast in-browser video editor. Cut, trim, resize, convert formats, extract audio, create GIFs and export high-quality videos directly in your browser for free — no account, no upload, no watermarks.",
+            publisher: {
+              "@type": "Organization",
+              name: "Edit on the Spot",
+              url: "https://editonthespot.com/",
+            },
+            inLanguage: "en",
+          })}
+        </Script>
+        <Script id="schema-software" type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            name: "Qcut",
+            url: "https://qcut.app/",
+            description:
+              "Free browser video editor that lets users cut, trim, convert and edit videos without creating an account or uploading files to a server.",
+            applicationCategory: "MultimediaApplication",
+            operatingSystem: "Web",
+            offers: {
+              "@type": "Offer",
+              price: "0",
+              priceCurrency: "USD",
+              url: "https://qcut.app/",
+            },
+            featureList: [
+              "Trim & Cut unwanted parts of videos",
+              "Convert video formats (MP4, WebM, MOV, AVI, MKV)",
+              "Extract audio tracks (MP3, WAV)",
+              "Resize & Crop video dimensions",
+              "Compress videos to smaller file sizes",
+              "Merge audio + video files",
+              "Join multiple clips together",
+              "Extract screenshots/frames",
+              "Create GIFs from videos",
+              "Normalize audio levels",
+              "Rotate & flip videos",
+              "Add Watermarks",
+            ],
+            publisher: {
+              "@type": "Organization",
+              name: "Edit on the Spot",
+              url: "https://editonthespot.com/",
+            },
+            inLanguage: "en",
+          })}
+        </Script>
         <Suspense fallback={null}>
           <AnalyticsTracker />
         </Suspense>
