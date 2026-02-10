@@ -15,7 +15,7 @@ export const QcutHero = ({ onSelectVideo }: QcutHeroProps) => {
     <section className="pt-32 pb-8 px-6">
       <div className="max-w-4xl mx-auto text-center">
         {/* Main headline */}
-        <h1 className="heading-display text-balance opacity-0 animate-fade-in">
+        <h1 className="heading-display text-balance">
           Cut, Convert & Edit Videos
           <br />
           <span className="text-primary">Right in Your Browser</span>
