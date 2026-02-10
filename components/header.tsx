@@ -19,8 +19,8 @@ export function Header() {
         {/* Logo - show light version in light mode, dark version in dark mode */}
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-2">
-            <Image src="/qcut-logo.png" alt="Qcut" width={80} height={36} className="h-9 w-auto dark:hidden" />
-            <Image src="/qcut-logo-on-dark.png" alt="Qcut" width={80} height={36} className="h-9 w-auto hidden dark:block" />
+            <Image src="/qcut-logo.png" alt="Qcut" width={80} height={32} className="h-9 w-auto dark:hidden" />
+            <Image src="/qcut-logo-on-dark.png" alt="Qcut" width={80} height={32} className="h-9 w-auto hidden dark:block" />
           </Link>
           <a href="https://www.editonthespot.com/" target="_blank" rel="noopener noreferrer" className="text-[10px] font-medium text-muted-foreground/70 hover:text-foreground transition-colors hidden sm:inline-block pt-1">
             Powered by Edit on the Spot
