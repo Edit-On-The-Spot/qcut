@@ -8,6 +8,7 @@ import { FFmpegLoader } from "@/components/ffmpeg-loader"
 import { NavigationGuard } from "@/components/navigation-guard"
 import { BuildInfo } from "@/components/build-info"
 import { AnalyticsTracker } from "@/components/analytics-tracker"
+import { FeatureRequestButton } from "@/components/feature-request-button"
 import "./globals.css"
 
 const _geist = Geist({ subsets: ["latin"] })
@@ -69,6 +70,7 @@ export default function RootLayout({
         <NavigationGuard />
         <Header />
         {children}
+        <FeatureRequestButton />
       </body>
     </html>
   )
