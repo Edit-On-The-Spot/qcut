@@ -4,11 +4,17 @@ import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import Script from "next/script"
 import { Header } from "@/components/header"
-import { FFmpegLoader } from "@/components/ffmpeg-loader"
-import { NavigationGuard } from "@/components/navigation-guard"
+import dynamic from "next/dynamic"
 import { BuildInfo } from "@/components/build-info"
 import { AnalyticsTracker } from "@/components/analytics-tracker"
-import { FeatureRequestButton } from "@/components/feature-request-button"
+
+const FFmpegLoader = dynamic(() => import("@/components/ffmpeg-loader").then((m) => m.FFmpegLoader))
+const NavigationGuard = dynamic(
+  () => import("@/components/navigation-guard").then((m) => m.NavigationGuard)
+)
+const FeatureRequestButton = dynamic(
+  () => import("@/components/feature-request-button").then((m) => m.FeatureRequestButton)
+)
 import "./globals.css"
 
 const geist = Geist({ subsets: ["latin"], display: "swap", variable: "--font-geist-sans" })
@@ -51,9 +57,9 @@ export default function RootLayout({
       <body className={`${geist.variable} ${geistMono.variable} font-sans antialiased`}>
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-8508P87GEX"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
         />
-        <Script id="google-analytics" strategy="afterInteractive">
+        <Script id="google-analytics" strategy="lazyOnload">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}

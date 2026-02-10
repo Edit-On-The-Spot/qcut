@@ -4,15 +4,21 @@ import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import dynamic from "next/dynamic"
 import { QcutHero } from "@/components/landing/qcut-hero"
 import { QcutDropzone } from "@/components/landing/qcut-dropzone"
 import { WhyQcutSection } from "@/components/landing/why-qcut-section"
-import { QcutFeatures } from "@/components/landing/qcut-features"
-import { HowItWorksSection } from "@/components/landing/how-it-works-section"
-import { FAQSection } from "@/components/landing/faq-section"
-import { FinalCTASection } from "@/components/landing/final-cta-section"
-import { QcutFooter } from "@/components/landing/qcut-footer"
-import { FileSelectModal } from "@/components/file-select-modal"
+
+const QcutFeatures = dynamic(() => import("@/components/landing/qcut-features").then((m) => m.QcutFeatures))
+const HowItWorksSection = dynamic(
+  () => import("@/components/landing/how-it-works-section").then((m) => m.HowItWorksSection)
+)
+const FAQSection = dynamic(() => import("@/components/landing/faq-section").then((m) => m.FAQSection))
+const FinalCTASection = dynamic(
+  () => import("@/components/landing/final-cta-section").then((m) => m.FinalCTASection)
+)
+const QcutFooter = dynamic(() => import("@/components/landing/qcut-footer").then((m) => m.QcutFooter))
+const FileSelectModal = dynamic(() => import("@/components/file-select-modal").then((m) => m.FileSelectModal))
 import { FileSizeWarning, getFileSizeWarningType } from "@/components/file-size-warning"
 import { useVideo, type ActionType } from "@/lib/video-context"
 import { createLogger } from "@/lib/logger"
