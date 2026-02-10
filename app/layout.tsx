@@ -11,8 +11,8 @@ import { AnalyticsTracker } from "@/components/analytics-tracker"
 import { FeatureRequestButton } from "@/components/feature-request-button"
 import "./globals.css"
 
-const _geist = Geist({ subsets: ["latin"] })
-const _geistMono = Geist_Mono({ subsets: ["latin"] })
+const geist = Geist({ subsets: ["latin"], display: "swap", variable: "--font-geist-sans" })
+const geistMono = Geist_Mono({ subsets: ["latin"], display: "swap", variable: "--font-geist-mono" })
 
 export const viewport: Viewport = {
   themeColor: "#0a0a0a",
@@ -48,7 +48,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`font-sans antialiased`}>
+      <body className={`${geist.variable} ${geistMono.variable} font-sans antialiased`}>
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-8508P87GEX"
           strategy="afterInteractive"
