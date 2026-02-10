@@ -119,6 +119,13 @@ export function ActionsScreen() {
   const { videoData, isLoading } = useRequireVideo()
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null)
 
+  // Prefetch action routes so router.push() uses SPA navigation
+  useEffect(() => {
+    for (const action of actions) {
+      router.prefetch(`/${action.type}`)
+    }
+  }, [router])
+
   // Generate thumbnail from video file
   useEffect(() => {
     if (!videoData?.file) return

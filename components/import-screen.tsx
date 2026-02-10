@@ -46,6 +46,18 @@ export function ImportScreen() {
     pendingActionRef.current = pendingAction
   }, [pendingAction])
 
+  // Prefetch destination routes so router.push() uses SPA navigation
+  useEffect(() => {
+    const actionTypes: ActionType[] = [
+      "trim", "convert", "extract-audio", "compress", "resize", "merge",
+      "combine", "frame-extract", "gif", "normalize-audio", "rotate", "overlay",
+    ]
+    router.prefetch("/actions")
+    for (const type of actionTypes) {
+      router.prefetch(`/${type}`)
+    }
+  }, [router])
+
   const handleSelectVideo = () => {
     fileInputRef.current?.click()
   }
