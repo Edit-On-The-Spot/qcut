@@ -193,7 +193,7 @@ export function ActionsScreen() {
       </div>
 
       <Card className="p-6">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           {/* Video thumbnail */}
           <div className="w-24 h-16 rounded-lg bg-muted overflow-hidden flex-shrink-0">
             {thumbnailUrl ? (
@@ -210,7 +210,7 @@ export function ActionsScreen() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-medium truncate">{videoData.file.name}</p>
-            <div className="flex gap-4 text-sm text-muted-foreground">
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
               <span>{formatDuration(videoData.duration)}</span>
               <span>{videoData.width && videoData.height ? `${videoData.width}×${videoData.height}` : "N/A"}</span>
               <span>{formatFileSize(videoData.file.size)}</span>
