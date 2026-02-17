@@ -1,7 +1,5 @@
 import type { Component, ActionConfig } from "../types"
-import { getState, subscribe } from "../store"
-import { waitForVideo } from "../lib/require-video"
-import { createVideoLoading } from "../components/video-loading"
+import { getVideoData } from "../store"
 import { createVideoUploadPrompt } from "../components/video-upload-prompt"
 import { createBackButton } from "../components/back-button"
 import { createProcessingButton } from "../components/processing-button"
@@ -16,38 +14,23 @@ export default function createCombinePage(): Component {
   const container = document.createElement("div")
   container.className = "container mx-auto px-6 py-12 min-h-screen pt-20"
 
-  const loading = createVideoLoading("Loading video data...")
-  container.appendChild(loading.element)
-
   let activeChildren: Component[] = []
-  let unsub: (() => void) | null = null
   let clips: File[] = []
   let processingBtn: Component | null = null
 
-  waitForVideo().then(({ needsUpload }) => {
-    loading.element.remove()
-
-    if (needsUpload) {
-      const prompt = createVideoUploadPrompt()
-      activeChildren.push(prompt)
-      container.appendChild(prompt.element)
-
-      unsub = subscribe(() => {
-        if (getState().videoData) {
-          unsub?.()
-          unsub = null
-          prompt.element.remove()
-          renderPage()
-        }
-      })
-      return
-    }
-
+  if (!getVideoData()) {
+    const prompt = createVideoUploadPrompt(() => {
+      prompt.element.remove()
+      renderPage()
+    })
+    activeChildren.push(prompt)
+    container.appendChild(prompt.element)
+  } else {
     renderPage()
-  })
+  }
 
   function renderPage(): void {
-    const videoData = getState().videoData
+    const videoData = getVideoData()
     if (!videoData) return
 
     activeChildren.forEach((c) => c.destroy())
@@ -190,7 +173,6 @@ export default function createCombinePage(): Component {
     element: container,
     destroy: () => {
       activeChildren.forEach((c) => c.destroy())
-      unsub?.()
     },
   }
 }

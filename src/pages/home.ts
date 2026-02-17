@@ -1,5 +1,5 @@
 import type { Component, ActionType } from "../types"
-import { setVideoData, getState } from "../store"
+import { setVideoData, getVideoData } from "../store"
 import { navigate } from "../router"
 import { createLogger } from "../lib/logger"
 import { trackVideoImport, trackVideoImportError, trackFeatureClick } from "../lib/analytics"
@@ -95,7 +95,7 @@ export default function createHomePage(): Component {
       file
         .arrayBuffer()
         .then((buffer) => {
-          const current = getState().videoData
+          const current = getVideoData()
           if (current?.file === file) {
             setVideoData({ ...current, fileData: new Uint8Array(buffer) })
           }

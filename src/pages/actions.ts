@@ -1,8 +1,6 @@
 import type { Component, ActionType } from "../types"
-import { getState, subscribe } from "../store"
+import { getVideoData } from "../store"
 import { navigate } from "../router"
-import { waitForVideo } from "../lib/require-video"
-import { createVideoLoading } from "../components/video-loading"
 import { createVideoUploadPrompt } from "../components/video-upload-prompt"
 import { createBackButton } from "../components/back-button"
 import { trackActionSelect } from "../lib/analytics"
@@ -43,39 +41,21 @@ export default function createActionsPage(): Component {
   const container = document.createElement("div")
   container.className = "container mx-auto px-6 py-12 min-h-screen pt-20"
 
-  // Show loading initially
-  const loading = createVideoLoading("Loading video data...")
-  container.appendChild(loading.element)
-
   let activeChildren: Component[] = []
-  let unsub: (() => void) | null = null
 
-  // Wait for video data
-  waitForVideo().then(({ isReady, needsUpload }) => {
-    loading.element.remove()
-
-    if (needsUpload) {
-      const prompt = createVideoUploadPrompt()
-      activeChildren.push(prompt)
-      container.appendChild(prompt.element)
-
-      // Watch for video data to appear
-      unsub = subscribe(() => {
-        if (getState().videoData) {
-          unsub?.()
-          unsub = null
-          prompt.element.remove()
-          renderActions()
-        }
-      })
-      return
-    }
-
+  if (!getVideoData()) {
+    const prompt = createVideoUploadPrompt(() => {
+      prompt.element.remove()
+      renderActions()
+    })
+    activeChildren.push(prompt)
+    container.appendChild(prompt.element)
+  } else {
     renderActions()
-  })
+  }
 
   function renderActions(): void {
-    const videoData = getState().videoData
+    const videoData = getVideoData()
     if (!videoData) return
 
     // Clean previous children
@@ -165,7 +145,6 @@ export default function createActionsPage(): Component {
     element: container,
     destroy: () => {
       activeChildren.forEach((c) => c.destroy())
-      unsub?.()
     },
   }
 }

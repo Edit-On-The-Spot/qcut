@@ -30,8 +30,6 @@ export interface ActionConfig {
 }
 
 export interface AppState {
-  videoData: VideoData | null
-  actionConfig: ActionConfig | null
   ffmpeg: FFmpeg | null
   isFFmpegLoaded: boolean
   ffmpegMessage: string

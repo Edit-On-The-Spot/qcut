@@ -1,6 +1,7 @@
 import JSZip from "jszip"
 import type { ActionConfig } from "../types"
-import { getState, startProcessing, finishProcessing, subscribe } from "../store"
+import type { VideoData } from "../types"
+import { getState, getVideoData, startProcessing, finishProcessing, subscribe } from "../store"
 import { createLogger } from "./logger"
 import {
   trackProcessingStart,
@@ -68,7 +69,7 @@ export class VideoProcessor {
   /** Processes the video with the given config. */
   async process(config: ActionConfig): Promise<void> {
     const appState = getState()
-    const { videoData } = appState
+    const videoData = getVideoData()
     const isSingleFrameExtract = config.type === "frame-extract" && config.params.mode === "single"
 
     const isGifWithGifenc = config.type === "gif" && (() => {
@@ -123,7 +124,7 @@ export class VideoProcessor {
 
   private async extractSingleFrame(
     config: ActionConfig,
-    videoData: NonNullable<typeof getState extends () => infer S ? S extends { videoData: infer V } ? V : never : never>,
+    videoData: VideoData,
     processingStartMs: number
   ): Promise<void> {
     log.info("Starting single frame extraction")
@@ -193,7 +194,7 @@ export class VideoProcessor {
 
   private async createGifWithGifenc(
     config: ActionConfig,
-    videoData: NonNullable<ReturnType<typeof getState>["videoData"]>,
+    videoData: VideoData,
     processingStartMs: number
   ): Promise<void> {
     log.info("Using gifenc for fast GIF creation")
@@ -223,7 +224,7 @@ export class VideoProcessor {
 
   private async processWithFFmpeg(
     config: ActionConfig,
-    videoData: NonNullable<ReturnType<typeof getState>["videoData"]>,
+    videoData: VideoData,
     processingStartMs: number
   ): Promise<void> {
     const ffmpeg = getState().ffmpeg!
@@ -306,7 +307,7 @@ export class VideoProcessor {
   download(config: ActionConfig): void {
     if (!this.state.outputUrl) return
     const ext = this.getOutputExtension(config)
-    const videoData = getState().videoData
+    const videoData = getVideoData()
     const name = `${videoData?.file.name.replace(/\.[^/.]+$/, "") || "output"}_${config.type}.${ext}`
     this.triggerDownload(this.state.outputUrl, name)
   }

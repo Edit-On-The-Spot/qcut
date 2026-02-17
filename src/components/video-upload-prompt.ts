@@ -1,5 +1,5 @@
 import type { Component } from "../types"
-import { setVideoData, getState } from "../store"
+import { setVideoData, getVideoData } from "../store"
 import { getFileSizeWarningType } from "../lib/file-utils"
 import { createFileSizeWarning } from "./file-size-warning"
 import { createLogger } from "../lib/logger"
@@ -12,7 +12,7 @@ const log = createLogger("video-upload-prompt")
  * Handles file selection via drag-and-drop or click, extracts video metadata,
  * and sets the video data in the store.
  */
-export function createVideoUploadPrompt(): Component {
+export function createVideoUploadPrompt(onVideoLoaded: () => void): Component {
   const wrapper = document.createElement("div")
   wrapper.className = "max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[400px] space-y-6 pt-14"
 
@@ -68,8 +68,9 @@ export function createVideoUploadPrompt(): Component {
         height: video.videoHeight,
         format: file.name.split(".").pop()?.toUpperCase(),
       })
+      onVideoLoaded()
       file.arrayBuffer().then((buffer) => {
-        const current = getState().videoData
+        const current = getVideoData()
         if (current?.file === file) {
           setVideoData({ ...current, fileData: new Uint8Array(buffer) })
         }

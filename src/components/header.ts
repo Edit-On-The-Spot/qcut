@@ -1,6 +1,5 @@
 import type { Component } from "../types"
 import { navigate, getCurrentPath } from "../router"
-import { subscribe } from "../store"
 import { createThemeToggle } from "./theme-toggle"
 
 /**

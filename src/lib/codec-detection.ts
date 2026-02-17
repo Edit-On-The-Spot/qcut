@@ -1,4 +1,4 @@
-import { getState } from "../store"
+import { getState, getVideoData } from "../store"
 import { createLogger } from "./logger"
 
 const log = createLogger("codec-detection")
@@ -27,7 +27,8 @@ export interface CodecInfo {
  * Returns null if FFmpeg is not loaded or no video data is available.
  */
 export async function detectCodecs(): Promise<CodecInfo | null> {
-  const { ffmpeg, isFFmpegLoaded, videoData } = getState()
+  const { ffmpeg, isFFmpegLoaded } = getState()
+  const videoData = getVideoData()
 
   log.debug("detectCodecs called - ffmpeg: %s, isLoaded: %s, videoData: %s", !!ffmpeg, isFFmpegLoaded, !!videoData)
 

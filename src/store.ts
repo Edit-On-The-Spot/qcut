@@ -1,5 +1,5 @@
 import { FFmpeg } from "@ffmpeg/ffmpeg"
-import type { AppState, VideoData, ActionConfig } from "./types"
+import type { AppState, VideoData } from "./types"
 import { createLogger } from "./lib/logger"
 
 const log = createLogger("store")
@@ -8,9 +8,10 @@ type Listener = () => void
 
 const listeners = new Set<Listener>()
 
+// VideoData stored at module level — set synchronously before navigation
+let videoData: VideoData | null = null
+
 const state: AppState = {
-  videoData: null,
-  actionConfig: null,
   ffmpeg: null,
   isFFmpegLoaded: false,
   ffmpegMessage: "",
@@ -22,6 +23,16 @@ const state: AppState = {
 /** Returns a snapshot of the current app state. */
 export function getState(): Readonly<AppState> {
   return state
+}
+
+/** Returns the current video data. */
+export function getVideoData(): VideoData | null {
+  return videoData
+}
+
+/** Sets the video data. */
+export function setVideoData(data: VideoData | null): void {
+  videoData = data
 }
 
 /** Merges partial state updates and notifies subscribers. */
@@ -36,25 +47,12 @@ export function subscribe(fn: Listener): () => void {
   return () => listeners.delete(fn)
 }
 
-/** Resets video data, action config, and thumbnail cache. */
+/** Resets video data and thumbnail cache. */
 export function resetVideo(): void {
   log.info("Resetting video state")
-  state.videoData = null
-  state.actionConfig = null
+  setVideoData(null)
   state.thumbnailCache = new Map()
   log.debug("Thumbnail cache cleared")
-  listeners.forEach((fn) => fn())
-}
-
-/** Sets the video data in the store. */
-export function setVideoData(data: VideoData | null): void {
-  state.videoData = data
-  listeners.forEach((fn) => fn())
-}
-
-/** Sets the action config in the store. */
-export function setActionConfig(config: ActionConfig | null): void {
-  state.actionConfig = config
   listeners.forEach((fn) => fn())
 }
 
