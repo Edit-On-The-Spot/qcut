@@ -116,17 +116,28 @@ const routes: Record<string, RouteConfig> = {
 let currentCleanup: (() => void) | null = null
 let currentPath = ""
 
+/** Strips trailing slash from path (except root "/"). */
+function normalizePath(path: string): string {
+  return path !== "/" && path.endsWith("/") ? path.slice(0, -1) : path
+}
+
 /**
  * Renders the route matching the given path into #page-content.
  * Calls the previous page's destroy() before mounting the new one.
  */
 async function renderRoute(path: string): Promise<void> {
+  path = normalizePath(path)
+
   const route = routes[path]
   if (!route) {
     log.warn("No route for path: %s, redirecting to /", path)
     navigate("/", true)
     return
   }
+
+  // Set currentPath immediately to prevent duplicate navigations during async load
+  const previousPath = currentPath
+  currentPath = path
 
   // Update document head
   document.title = route.title
@@ -151,13 +162,21 @@ async function renderRoute(path: string): Promise<void> {
 
   try {
     const mod = await route.load()
+
+    // Guard: if another navigation happened during async load, abort this render
+    if (currentPath !== path) {
+      log.debug("Navigation superseded: %s → %s, aborting render of %s", previousPath, currentPath, path)
+      return
+    }
+
     const page = mod.default()
     container.appendChild(page.element)
     currentCleanup = page.destroy
-    currentPath = path
   } catch (err) {
     log.error("Failed to load route %s:", path, err)
     container.innerHTML = `<div class="flex items-center justify-center min-h-[60vh]"><p class="text-muted-foreground">Failed to load page.</p></div>`
+    // Reset currentPath so navigation can be retried
+    currentPath = previousPath
   }
 
   // Track page view
@@ -170,6 +189,7 @@ async function renderRoute(path: string): Promise<void> {
  * @param isReplace - Use replaceState instead of pushState
  */
 export async function navigate(path: string, isReplace = false): Promise<void> {
+  path = normalizePath(path)
   if (path === currentPath) return
 
   // Navigation guard: confirm before navigating away during processing
@@ -204,7 +224,10 @@ export function initRouter(): void {
 
   // Handle browser back/forward
   window.addEventListener("popstate", () => {
-    renderRoute(window.location.pathname)
+    const path = normalizePath(window.location.pathname)
+    if (path !== currentPath) {
+      renderRoute(path)
+    }
   })
 
   // Render the initial route
