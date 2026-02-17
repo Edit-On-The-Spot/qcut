@@ -3,6 +3,7 @@
 import { useState } from "react"
 import type { ActionConfig } from "@/lib/video-context"
 import { useRequireVideo } from "@/lib/use-require-video"
+import { VideoUploadPrompt } from "@/components/video-upload-prompt"
 import { useVideoUrl } from "@/lib/use-video-url"
 import { ProcessingButton } from "@/components/processing-button"
 import { VideoPreview } from "@/components/video-preview"
@@ -16,7 +17,7 @@ import { Slider } from "@/components/ui/slider"
  * Allows setting target loudness, true peak, and loudness range.
  */
 export function NormalizeAudioScreen() {
-  const { videoData, isLoading } = useRequireVideo()
+  const { videoData, isLoading, needsUpload } = useRequireVideo()
   const videoUrl = useVideoUrl(videoData?.file)
   const [targetLoudnessLufs, setTargetLoudnessLufs] = useState([-16])
   const [truePeakDb, setTruePeakDb] = useState([-1.5])
@@ -30,6 +31,10 @@ export function NormalizeAudioScreen() {
       loudnessRangeLu: loudnessRangeLu[0],
     },
   })
+
+  if (needsUpload) {
+    return <VideoUploadPrompt />
+  }
 
   if (isLoading || !videoData) {
     return <VideoLoading />

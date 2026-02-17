@@ -6,6 +6,7 @@ import { Plus, X, GripVertical } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { ActionConfig } from "@/lib/video-context"
 import { useRequireVideo } from "@/lib/use-require-video"
+import { VideoUploadPrompt } from "@/components/video-upload-prompt"
 import { ProcessingButton } from "@/components/processing-button"
 import { VideoLoading } from "@/components/video-loading"
 import { BackButton } from "@/components/back-button"
@@ -17,7 +18,7 @@ import { Input } from "@/components/ui/input"
  * Allows adding multiple video files to merge into one.
  */
 export function CombineScreen() {
-  const { videoData, isLoading } = useRequireVideo()
+  const { videoData, isLoading, needsUpload } = useRequireVideo()
   const [clips, setClips] = useState<File[]>(videoData ? [videoData.file] : [])
 
   const handleAddClips = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -35,6 +36,10 @@ export function CombineScreen() {
       clips,
     },
   })
+
+  if (needsUpload) {
+    return <VideoUploadPrompt />
+  }
 
   if (isLoading || !videoData) {
     return <VideoLoading />

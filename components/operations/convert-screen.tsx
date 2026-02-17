@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Loader2 } from "lucide-react"
 import type { ActionConfig } from "@/lib/video-context"
 import { useRequireVideo } from "@/lib/use-require-video"
+import { VideoUploadPrompt } from "@/components/video-upload-prompt"
 import { useVideoUrl } from "@/lib/use-video-url"
 import { useCodecDetection } from "@/lib/use-codec-detection"
 import { ProcessingButton } from "@/components/processing-button"
@@ -31,7 +32,7 @@ const CODEC_DISPLAY_NAMES: Record<string, string> = {
  * Detects current video codec using FFmpeg.
  */
 export function ConvertScreen() {
-  const { videoData, setVideoData, isLoading } = useRequireVideo()
+  const { videoData, setVideoData, isLoading, needsUpload } = useRequireVideo()
   const videoUrl = useVideoUrl(videoData?.file)
   const { codecInfo, isDetecting, detectCodecs, isReady } = useCodecDetection()
   const [format, setFormat] = useState("mp4")
@@ -64,6 +65,10 @@ export function ConvertScreen() {
     type: "convert",
     params: { format, codec },
   })
+
+  if (needsUpload) {
+    return <VideoUploadPrompt />
+  }
 
   if (isLoading || !videoData) {
     return <VideoLoading />

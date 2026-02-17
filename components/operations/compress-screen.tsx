@@ -3,6 +3,7 @@
 import { useState } from "react"
 import type { ActionConfig } from "@/lib/video-context"
 import { useRequireVideo } from "@/lib/use-require-video"
+import { VideoUploadPrompt } from "@/components/video-upload-prompt"
 import { useVideoUrl } from "@/lib/use-video-url"
 import { ProcessingButton } from "@/components/processing-button"
 import { VideoPreview } from "@/components/video-preview"
@@ -17,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
  * Allows adjusting quality (CRF) and encoding preset.
  */
 export function CompressScreen() {
-  const { videoData, isLoading } = useRequireVideo()
+  const { videoData, isLoading, needsUpload } = useRequireVideo()
   const videoUrl = useVideoUrl(videoData?.file)
   const [quality, setQuality] = useState([28])
   const [preset, setPreset] = useState("medium")
@@ -26,6 +27,10 @@ export function CompressScreen() {
     type: "compress",
     params: { crf: quality[0], preset },
   })
+
+  if (needsUpload) {
+    return <VideoUploadPrompt />
+  }
 
   if (isLoading || !videoData) {
     return <VideoLoading />

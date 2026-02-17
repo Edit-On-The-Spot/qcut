@@ -5,6 +5,7 @@ import { Volume2, VolumeX } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { ActionConfig } from "@/lib/video-context"
 import { useRequireVideo } from "@/lib/use-require-video"
+import { VideoUploadPrompt } from "@/components/video-upload-prompt"
 import { useVideoUrl } from "@/lib/use-video-url"
 import { ProcessingButton } from "@/components/processing-button"
 import { VideoPreview } from "@/components/video-preview"
@@ -18,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
  * Supports extracting audio in multiple formats or extracting video without audio.
  */
 export function ExtractAudioScreen() {
-  const { videoData, isLoading } = useRequireVideo()
+  const { videoData, isLoading, needsUpload } = useRequireVideo()
   const videoUrl = useVideoUrl(videoData?.file)
   const [extractMode, setExtractMode] = useState<"audio" | "video">("audio")
   const [format, setFormat] = useState("mp3")
@@ -34,6 +35,10 @@ export function ExtractAudioScreen() {
       videoFormat,
     },
   })
+
+  if (needsUpload) {
+    return <VideoUploadPrompt />
+  }
 
   if (isLoading || !videoData) {
     return <VideoLoading />

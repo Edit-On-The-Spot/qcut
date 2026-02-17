@@ -6,6 +6,7 @@ import { Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { ActionConfig } from "@/lib/video-context"
 import { useRequireVideo } from "@/lib/use-require-video"
+import { VideoUploadPrompt } from "@/components/video-upload-prompt"
 import { ProcessingButton } from "@/components/processing-button"
 import { VideoLoading } from "@/components/video-loading"
 import { BackButton } from "@/components/back-button"
@@ -17,7 +18,7 @@ import { Input } from "@/components/ui/input"
  * Allows uploading a separate audio file to merge with the video.
  */
 export function MergeScreen() {
-  const { videoData, isLoading } = useRequireVideo()
+  const { videoData, isLoading, needsUpload } = useRequireVideo()
   const [audioFile, setAudioFile] = useState<File | null>(null)
 
   const handleAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -33,6 +34,10 @@ export function MergeScreen() {
       audioFile,
     },
   })
+
+  if (needsUpload) {
+    return <VideoUploadPrompt />
+  }
 
   if (isLoading || !videoData) {
     return <VideoLoading />
