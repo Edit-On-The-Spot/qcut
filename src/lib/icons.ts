@@ -1,6 +1,94 @@
 import { createElement as lucideCreateElement } from "lucide"
 import type { IconNode } from "lucide"
-import * as allIcons from "lucide"
+import {
+  AlertTriangle,
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+  Download,
+  ExternalLink,
+  FileOutput,
+  Film,
+  FlipHorizontal,
+  FlipVertical,
+  Github,
+  Grid3x3,
+  GripVertical,
+  Image,
+  ImagePlus,
+  Layers,
+  Lightbulb,
+  Loader2,
+  Lock,
+  Maximize2,
+  Merge,
+  Minimize2,
+  Music,
+  Pause,
+  Play,
+  Plus,
+  Repeat,
+  RotateCcw,
+  RotateCw,
+  Scissors,
+  Send,
+  Target,
+  Twitter,
+  Upload,
+  UserX,
+  Volume2,
+  VolumeX,
+  Wand2,
+  X,
+  XCircle,
+  Zap,
+} from "lucide"
+
+/** Registry mapping icon names to their IconNode definitions. */
+const iconRegistry: Record<string, IconNode> = {
+  AlertTriangle,
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+  Download,
+  ExternalLink,
+  FileOutput,
+  Film,
+  FlipHorizontal,
+  FlipVertical,
+  Github,
+  Grid3x3,
+  GripVertical,
+  Image,
+  ImageIcon: Image,
+  ImagePlus,
+  Layers,
+  Lightbulb,
+  Loader2,
+  Lock,
+  Maximize2,
+  Merge,
+  Minimize2,
+  Music,
+  Pause,
+  Play,
+  Plus,
+  Repeat,
+  RotateCcw,
+  RotateCw,
+  Scissors,
+  Send,
+  Target,
+  Twitter,
+  Upload,
+  UserX,
+  Volume2,
+  VolumeX,
+  Wand2,
+  X,
+  XCircle,
+  Zap,
+}
 
 /**
  * Renders a Lucide icon as an SVG element.
@@ -10,7 +98,7 @@ import * as allIcons from "lucide"
  * @returns SVG element
  */
 export function icon(name: string, sizePx = 24, className?: string): SVGSVGElement {
-  const iconNode = (allIcons as unknown as Record<string, IconNode>)[name]
+  const iconNode = iconRegistry[name]
   if (!iconNode) {
     console.warn(`Icon "${name}" not found in lucide`)
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
