@@ -61,6 +61,7 @@ export default function createTrimPage(): Component {
   let keydownHandler: ((e: KeyboardEvent) => void) | null = null
   let zoomUnsub: (() => void) | null = null
   let thumbnailStoreUnsub: (() => void) | null = null
+  let processingBtn: Component | null = null
 
   // Mutable state
   let isPlaying = false
@@ -766,15 +767,23 @@ export default function createTrimPage(): Component {
   function updateProcessingButton(): void {
     const procContainer = container.querySelector("#trim-processing") as HTMLElement
     if (!procContainer) return
+
+    if (processingBtn) {
+      processingBtn.destroy()
+      const idx = activeChildren.indexOf(processingBtn)
+      if (idx !== -1) activeChildren.splice(idx, 1)
+    }
     procContainer.innerHTML = ""
 
     if (durationSec > 0) {
-      const procBtn = createProcessingButton({
+      processingBtn = createProcessingButton({
         config: getActionConfig(),
         onReset: handleClearSelection,
       })
-      activeChildren.push(procBtn)
-      procContainer.appendChild(procBtn.element)
+      activeChildren.push(processingBtn)
+      procContainer.appendChild(processingBtn.element)
+    } else {
+      processingBtn = null
     }
   }
 

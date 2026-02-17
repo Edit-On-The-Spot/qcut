@@ -30,6 +30,7 @@ export default function createCombinePage(): Component {
   let activeChildren: Component[] = []
   let unsub: (() => void) | null = null
   let clips: File[] = []
+  let processingBtn: Component | null = null
 
   waitForVideo().then(({ needsUpload }) => {
     loading.element.remove()
@@ -174,16 +175,22 @@ export default function createCombinePage(): Component {
       </p>
     `
 
+    if (processingBtn) {
+      processingBtn.destroy()
+      const idx = activeChildren.indexOf(processingBtn)
+      if (idx !== -1) activeChildren.splice(idx, 1)
+    }
     processingContainer.innerHTML = ""
+    processingBtn = null
     if (clips.length >= 2) {
       const getActionConfig = (): ActionConfig => ({
         type: "combine",
         params: { clips },
       })
 
-      const procBtn = createProcessingButton({ config: getActionConfig() })
-      activeChildren.push(procBtn)
-      processingContainer.appendChild(procBtn.element)
+      processingBtn = createProcessingButton({ config: getActionConfig() })
+      activeChildren.push(processingBtn)
+      processingContainer.appendChild(processingBtn.element)
     }
   }
 

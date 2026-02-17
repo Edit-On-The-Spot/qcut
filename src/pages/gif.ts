@@ -46,6 +46,7 @@ export default function createGifPage(): Component {
   let endTimeSec: number | null = null
   let fps = 10
   let scale = 480
+  let processingBtn: Component | null = null
 
   waitForVideo().then(({ needsUpload }) => {
     loading.element.remove()
@@ -278,6 +279,7 @@ export default function createGifPage(): Component {
     fpsInput.addEventListener("input", () => {
       fps = parseInt(fpsInput.value)
       fpsLabel.textContent = `${fps} fps`
+      updateProcessingButton()
     })
 
     const scaleInput = container.querySelector("#gif-scale") as HTMLInputElement
@@ -285,6 +287,7 @@ export default function createGifPage(): Component {
     scaleInput.addEventListener("input", () => {
       scale = parseInt(scaleInput.value)
       scaleLabel.textContent = `${scale}px`
+      updateProcessingButton()
     })
 
     // Clear button state
@@ -370,14 +373,20 @@ export default function createGifPage(): Component {
   function updateProcessingButton(): void {
     const procContainer = container.querySelector("#gif-processing") as HTMLElement
     if (!procContainer) return
+
+    if (processingBtn) {
+      processingBtn.destroy()
+      const idx = activeChildren.indexOf(processingBtn)
+      if (idx !== -1) activeChildren.splice(idx, 1)
+    }
     procContainer.innerHTML = ""
 
-    const procBtn = createProcessingButton({
+    processingBtn = createProcessingButton({
       config: getActionConfig(),
       onReset: handleClearSelection,
     })
-    activeChildren.push(procBtn)
-    procContainer.appendChild(procBtn.element)
+    activeChildren.push(processingBtn)
+    procContainer.appendChild(processingBtn.element)
   }
 
   return {

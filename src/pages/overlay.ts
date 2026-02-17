@@ -35,6 +35,7 @@ export default function createOverlayPage(): Component {
   let revokeVideoUrl: () => void = () => {}
   let overlayFile: File | null = null
   let overlayPreviewUrl = ""
+  let processingBtn: Component | null = null
   let position = "top-left"
   let offsetX = 10
   let offsetY = 10
@@ -326,7 +327,13 @@ export default function createOverlayPage(): Component {
 
       // Processing button
       const procContainer = settingsPanel.querySelector("#overlay-processing") as HTMLElement
+      if (processingBtn) {
+        processingBtn.destroy()
+        const idx = activeChildren.indexOf(processingBtn)
+        if (idx !== -1) activeChildren.splice(idx, 1)
+      }
       procContainer.innerHTML = ""
+      processingBtn = null
       if (overlayFile) {
         const getActionConfig = (): ActionConfig => ({
           type: "overlay",
@@ -339,15 +346,15 @@ export default function createOverlayPage(): Component {
             opacityPct,
           },
         })
-        const procBtn = createProcessingButton({
+        processingBtn = createProcessingButton({
           config: getActionConfig(),
           onReset: () => {
             clearOverlayFile()
             renderControls()
           },
         })
-        activeChildren.push(procBtn)
-        procContainer.appendChild(procBtn.element)
+        activeChildren.push(processingBtn)
+        procContainer.appendChild(processingBtn.element)
       }
     }
 
