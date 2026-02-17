@@ -7,6 +7,7 @@ import { createVideoUploadPrompt } from "../components/video-upload-prompt"
 import { createBackButton } from "../components/back-button"
 import { trackActionSelect } from "../lib/analytics"
 import { iconSvg } from "../lib/icons"
+import { formatFileSize } from "../lib/file-utils"
 
 const actions: Array<{
   type: ActionType
@@ -33,10 +34,6 @@ function formatDuration(seconds?: number): string {
   const mins = Math.floor(seconds / 60)
   const secs = Math.floor(seconds % 60)
   return `${mins}:${secs.toString().padStart(2, "0")}`
-}
-
-function formatFileSize(bytes: number): string {
-  return (bytes / (1024 * 1024)).toFixed(2) + " MB"
 }
 
 /**

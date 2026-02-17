@@ -6,15 +6,7 @@ import { createVideoUploadPrompt } from "../components/video-upload-prompt"
 import { createBackButton } from "../components/back-button"
 import { createProcessingButton } from "../components/processing-button"
 import { iconSvg } from "../lib/icons"
-
-/**
- * Formats byte count to a human-readable MB string.
- * @param bytes - Size in bytes
- * @returns Formatted string like "12.34 MB"
- */
-function formatFileSize(bytes: number): string {
-  return (bytes / (1024 * 1024)).toFixed(2) + " MB"
-}
+import { formatFileSize } from "../lib/file-utils"
 
 /**
  * Combine page for concatenating multiple video clips into one.

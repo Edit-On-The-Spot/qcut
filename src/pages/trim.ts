@@ -11,30 +11,7 @@ import { createVideoFramerate } from "../lib/video-framerate"
 import { createFFmpegThumbnails } from "../lib/ffmpeg-thumbnails"
 import { createThumbnailZoom } from "../lib/thumbnail-zoom"
 import { createMarkerDrag } from "../lib/marker-drag"
-import { snapTimeToFrame } from "../lib/time-utils"
-
-/**
- * Formats time as M:SS for display on timeline and selection info.
- * @param seconds - Time in seconds
- * @returns Formatted string like "1:05"
- */
-function formatTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60)
-  const secs = Math.floor(seconds % 60)
-  return `${mins}:${secs.toString().padStart(2, "0")}`
-}
-
-/**
- * Formats time with centisecond precision for thumbnail overlays.
- * @param seconds - Time in seconds
- * @returns Formatted string like "1:05.23"
- */
-function formatTimeWithCentiseconds(seconds: number): string {
-  const mins = Math.floor(seconds / 60)
-  const secs = Math.floor(seconds % 60)
-  const centiseconds = Math.floor((seconds % 1) * 100)
-  return `${mins}:${secs.toString().padStart(2, "0")}.${centiseconds.toString().padStart(2, "0")}`
-}
+import { snapTimeToFrame, formatTime, formatTimeWithCentiseconds } from "../lib/time-utils"
 
 /**
  * Trim page for cutting video segments with visual timeline preview.

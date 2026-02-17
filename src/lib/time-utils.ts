@@ -1,3 +1,26 @@
+/**
+ * Formats time as M:SS for display on timelines and selection info.
+ * @param seconds - Time in seconds
+ * @returns Formatted string like "1:05"
+ */
+export function formatTime(seconds: number): string {
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.floor(seconds % 60)
+  return `${mins}:${secs.toString().padStart(2, "0")}`
+}
+
+/**
+ * Formats time with centisecond precision for thumbnail overlays.
+ * @param seconds - Time in seconds
+ * @returns Formatted string like "1:05.23"
+ */
+export function formatTimeWithCentiseconds(seconds: number): string {
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.floor(seconds % 60)
+  const centiseconds = Math.floor((seconds % 1) * 100)
+  return `${mins}:${secs.toString().padStart(2, "0")}.${centiseconds.toString().padStart(2, "0")}`
+}
+
 export function snapTimeToFrame(timeSec: number, framerateFps: number, durationSec: number): number {
   const safeFps = framerateFps > 0 ? framerateFps : 30
   const snapped = Math.round(timeSec * safeFps) / safeFps

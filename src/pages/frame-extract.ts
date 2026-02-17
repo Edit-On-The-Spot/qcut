@@ -7,7 +7,7 @@ import { createBackButton } from "../components/back-button"
 import { createProcessingButton } from "../components/processing-button"
 import { createVideoUrl } from "../lib/video-url"
 import { createVideoFramerate } from "../lib/video-framerate"
-import { snapTimeToFrame } from "../lib/time-utils"
+import { snapTimeToFrame, formatTime } from "../lib/time-utils"
 import { iconSvg } from "../lib/icons"
 
 /**
@@ -162,12 +162,6 @@ export default function createFrameExtractPage(): Component {
     timeLabels.appendChild(durationLabel)
     timelineSection.appendChild(timeLabels)
     content.appendChild(timelineSection)
-
-    function formatTime(seconds: number): string {
-      const mins = Math.floor(seconds / 60)
-      const secs = Math.floor(seconds % 60)
-      return `${mins}:${secs.toString().padStart(2, "0")}`
-    }
 
     function updateTimeline(): void {
       const pct = durationSec > 0 ? (currentTimeSec / durationSec) * 100 : 0

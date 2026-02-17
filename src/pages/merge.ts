@@ -6,6 +6,7 @@ import { createVideoUploadPrompt } from "../components/video-upload-prompt"
 import { createBackButton } from "../components/back-button"
 import { createProcessingButton } from "../components/processing-button"
 import { iconSvg } from "../lib/icons"
+import { formatFileSize } from "../lib/file-utils"
 
 /**
  * Merge page for combining audio with video.
@@ -238,13 +239,6 @@ export default function createMergePage(): Component {
 
     inner.appendChild(content)
     container.appendChild(inner)
-  }
-
-  /**
-   * Formats bytes to a human-readable MB string.
-   */
-  function formatFileSize(bytes: number): string {
-    return (bytes / (1024 * 1024)).toFixed(2) + " MB"
   }
 
   return {

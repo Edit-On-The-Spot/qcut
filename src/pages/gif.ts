@@ -8,18 +8,7 @@ import { createProcessingButton } from "../components/processing-button"
 import { iconSvg } from "../lib/icons"
 import { createVideoUrl } from "../lib/video-url"
 import { createVideoFramerate } from "../lib/video-framerate"
-import { snapTimeToFrame } from "../lib/time-utils"
-
-/**
- * Formats time in seconds as M:SS for display.
- * @param seconds - Time in seconds
- * @returns Formatted string like "1:05"
- */
-function formatTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60)
-  const secs = Math.floor(seconds % 60)
-  return `${mins}:${secs.toString().padStart(2, "0")}`
-}
+import { snapTimeToFrame, formatTime } from "../lib/time-utils"
 
 /**
  * GIF page for converting a video segment to animated GIF.
