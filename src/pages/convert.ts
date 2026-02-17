@@ -9,6 +9,9 @@ import { createVideoPreview } from "../components/video-preview"
 import { createVideoUrl } from "../lib/video-url"
 import { detectCodecs, CODEC_DISPLAY_NAMES } from "../lib/codec-detection"
 import { iconSvg } from "../lib/icons"
+import { createLogger } from "../lib/logger"
+
+const log = createLogger("convert")
 
 /**
  * Convert page for changing video format and codec.
@@ -269,21 +272,24 @@ export default function createConvertPage(): Component {
       updateCodecSelect()
       updateInfoSection()
 
-      const info = await detectCodecs()
+      try {
+        const info = await detectCodecs()
 
-      isDetecting = false
-
-      if (info) {
-        if (info.videoCodec) {
-          detectedCodec = info.videoCodec
+        if (info) {
+          if (info.videoCodec) {
+            detectedCodec = info.videoCodec
+          }
+          if (info.audioCodec) {
+            audioCodec = info.audioCodec
+          }
         }
-        if (info.audioCodec) {
-          audioCodec = info.audioCodec
-        }
+      } catch (err) {
+        log.error("Codec detection failed: %o", err)
+      } finally {
+        isDetecting = false
+        updateCodecSelect()
+        updateInfoSection()
       }
-
-      updateCodecSelect()
-      updateInfoSection()
     }
   }
 
