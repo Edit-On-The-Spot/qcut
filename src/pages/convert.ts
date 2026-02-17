@@ -118,6 +118,7 @@ export default function createConvertPage(): Component {
     formatSelect.value = format
     formatSelect.addEventListener("change", () => {
       format = formatSelect.value
+      updateProcessingButton()
     })
     formatDiv.appendChild(formatSelect)
     selectsGrid.appendChild(formatDiv)
@@ -170,6 +171,7 @@ export default function createConvertPage(): Component {
     codecSelect.addEventListener("change", () => {
       codec = codecSelect.value
       updateInfoSection()
+      updateProcessingButton()
     })
     codecDiv.appendChild(codecSelect)
     selectsGrid.appendChild(codecDiv)
@@ -213,9 +215,22 @@ export default function createConvertPage(): Component {
       params: { format, codec },
     })
 
-    const processBtn = createProcessingButton({ config: getActionConfig() })
-    activeChildren.push(processBtn)
-    settingsPanel.appendChild(processBtn.element)
+    let processingBtn: Component | null = null
+    const processingBtnContainer = document.createElement("div")
+
+    function updateProcessingButton(): void {
+      if (processingBtn) {
+        processingBtn.destroy()
+        const idx = activeChildren.indexOf(processingBtn)
+        if (idx !== -1) activeChildren.splice(idx, 1)
+      }
+      processingBtnContainer.innerHTML = ""
+      processingBtn = createProcessingButton({ config: getActionConfig() })
+      activeChildren.push(processingBtn)
+      processingBtnContainer.appendChild(processingBtn.element)
+    }
+    updateProcessingButton()
+    settingsPanel.appendChild(processingBtnContainer)
 
     contentDiv.appendChild(settingsPanel)
     inner.appendChild(contentDiv)

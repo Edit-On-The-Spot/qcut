@@ -152,6 +152,7 @@ export default function createExtractAudioPage(): Component {
       updateModeButtons()
       updateOverlay()
       updateOptionsSection()
+      updateProcessingButton()
     })
 
     videoModeBtn.addEventListener("click", () => {
@@ -159,6 +160,7 @@ export default function createExtractAudioPage(): Component {
       updateModeButtons()
       updateOverlay()
       updateOptionsSection()
+      updateProcessingButton()
     })
 
     modeButtonsDiv.appendChild(audioModeBtn)
@@ -196,6 +198,7 @@ export default function createExtractAudioPage(): Component {
         formatSelect.value = format
         formatSelect.addEventListener("change", () => {
           format = formatSelect.value
+          updateProcessingButton()
         })
         formatDiv.appendChild(formatSelect)
         optionsSection.appendChild(formatDiv)
@@ -220,6 +223,7 @@ export default function createExtractAudioPage(): Component {
         bitrateSelect.value = bitrate
         bitrateSelect.addEventListener("change", () => {
           bitrate = bitrateSelect.value
+          updateProcessingButton()
         })
         bitrateDiv.appendChild(bitrateSelect)
         optionsSection.appendChild(bitrateDiv)
@@ -241,6 +245,7 @@ export default function createExtractAudioPage(): Component {
         videoFormatSelect.value = videoFormat
         videoFormatSelect.addEventListener("change", () => {
           videoFormat = videoFormatSelect.value
+          updateProcessingButton()
         })
         optionsSection.appendChild(videoFormatSelect)
 
@@ -275,9 +280,22 @@ export default function createExtractAudioPage(): Component {
       },
     })
 
-    const processBtn = createProcessingButton({ config: getActionConfig() })
-    activeChildren.push(processBtn)
-    settingsPanel.appendChild(processBtn.element)
+    let processingBtn: Component | null = null
+    const processingBtnContainer = document.createElement("div")
+
+    function updateProcessingButton(): void {
+      if (processingBtn) {
+        processingBtn.destroy()
+        const idx = activeChildren.indexOf(processingBtn)
+        if (idx !== -1) activeChildren.splice(idx, 1)
+      }
+      processingBtnContainer.innerHTML = ""
+      processingBtn = createProcessingButton({ config: getActionConfig() })
+      activeChildren.push(processingBtn)
+      processingBtnContainer.appendChild(processingBtn.element)
+    }
+    updateProcessingButton()
+    settingsPanel.appendChild(processingBtnContainer)
 
     contentDiv.appendChild(settingsPanel)
     inner.appendChild(contentDiv)

@@ -104,6 +104,7 @@ export default function createNormalizeAudioPage(): Component {
         description: "-16 LUFS is standard for streaming platforms. Lower values = quieter output.",
         onChange: (val) => {
           targetLoudnessLufs = val
+          updateProcessingButton()
         },
       })
     )
@@ -120,6 +121,7 @@ export default function createNormalizeAudioPage(): Component {
         description: "Maximum peak level. -1.5 dB provides headroom to prevent clipping.",
         onChange: (val) => {
           truePeakDb = val
+          updateProcessingButton()
         },
       })
     )
@@ -136,6 +138,7 @@ export default function createNormalizeAudioPage(): Component {
         description: "Dynamic range of loudness. Lower values = more consistent volume.",
         onChange: (val) => {
           loudnessRangeLu = val
+          updateProcessingButton()
         },
       })
     )
@@ -164,9 +167,22 @@ export default function createNormalizeAudioPage(): Component {
       },
     })
 
-    const processBtn = createProcessingButton({ config: getActionConfig() })
-    activeChildren.push(processBtn)
-    settingsPanel.appendChild(processBtn.element)
+    let processingBtn: Component | null = null
+    const processingBtnContainer = document.createElement("div")
+
+    function updateProcessingButton(): void {
+      if (processingBtn) {
+        processingBtn.destroy()
+        const idx = activeChildren.indexOf(processingBtn)
+        if (idx !== -1) activeChildren.splice(idx, 1)
+      }
+      processingBtnContainer.innerHTML = ""
+      processingBtn = createProcessingButton({ config: getActionConfig() })
+      activeChildren.push(processingBtn)
+      processingBtnContainer.appendChild(processingBtn.element)
+    }
+    updateProcessingButton()
+    settingsPanel.appendChild(processingBtnContainer)
 
     contentDiv.appendChild(settingsPanel)
     inner.appendChild(contentDiv)

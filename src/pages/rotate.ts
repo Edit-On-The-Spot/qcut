@@ -154,6 +154,7 @@ export default function createRotatePage(): Component {
         updateRotationButtons()
         updatePreviewTransform()
         updateInfoSection()
+        updateProcessingButton()
       })
 
       rotationButtonsDiv.appendChild(btn)
@@ -209,6 +210,7 @@ export default function createRotatePage(): Component {
       updateFlipButtons()
       updatePreviewTransform()
       updateInfoSection()
+      updateProcessingButton()
     })
 
     flipVBtn.addEventListener("click", () => {
@@ -216,6 +218,7 @@ export default function createRotatePage(): Component {
       updateFlipButtons()
       updatePreviewTransform()
       updateInfoSection()
+      updateProcessingButton()
     })
 
     flipButtonsDiv.appendChild(flipHBtn)
@@ -270,9 +273,22 @@ export default function createRotatePage(): Component {
       },
     })
 
-    const processBtn = createProcessingButton({ config: getActionConfig() })
-    activeChildren.push(processBtn)
-    settingsPanel.appendChild(processBtn.element)
+    let processingBtn: Component | null = null
+    const processingBtnContainer = document.createElement("div")
+
+    function updateProcessingButton(): void {
+      if (processingBtn) {
+        processingBtn.destroy()
+        const idx = activeChildren.indexOf(processingBtn)
+        if (idx !== -1) activeChildren.splice(idx, 1)
+      }
+      processingBtnContainer.innerHTML = ""
+      processingBtn = createProcessingButton({ config: getActionConfig() })
+      activeChildren.push(processingBtn)
+      processingBtnContainer.appendChild(processingBtn.element)
+    }
+    updateProcessingButton()
+    settingsPanel.appendChild(processingBtnContainer)
 
     contentDiv.appendChild(settingsPanel)
     inner.appendChild(contentDiv)
