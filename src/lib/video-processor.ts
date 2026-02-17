@@ -38,6 +38,7 @@ export class VideoProcessor {
   }
 
   private listeners = new Set<ProcessorListener>()
+  private progressHandler: ((event: { progress: number }) => void) | null = null
 
   /** Returns the current processor state. */
   getState(): Readonly<ProcessorState> {
@@ -226,9 +227,13 @@ export class VideoProcessor {
     processingStartMs: number
   ): Promise<void> {
     const ffmpeg = getState().ffmpeg!
-    ffmpeg.on("progress", ({ progress: prog }) => {
+    if (this.progressHandler) {
+      ffmpeg.off("progress", this.progressHandler)
+    }
+    this.progressHandler = ({ progress: prog }) => {
       this.setState({ progress: Math.round(prog * 100) })
-    })
+    }
+    ffmpeg.on("progress", this.progressHandler)
 
     log.info("Starting processing for: %s", config.type)
     const buffer = await videoData.file.arrayBuffer()
@@ -308,6 +313,11 @@ export class VideoProcessor {
 
   /** Resets processor state without resetting video. */
   reset(): void {
+    const ffmpeg = getState().ffmpeg
+    if (ffmpeg && this.progressHandler) {
+      ffmpeg.off("progress", this.progressHandler)
+      this.progressHandler = null
+    }
     this.revokeOutputUrl()
     finishProcessing()
     this.setState({ isComplete: false, progress: 0, outputUrl: null, error: null, processingStartTimeMs: null })
