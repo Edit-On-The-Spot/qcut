@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft, Play, Pause, Upload } from "lucide-react"
 import type { ActionConfig } from "@/lib/video-context"
 import { useRequireVideo } from "@/lib/use-require-video"
+import { VideoUploadPrompt } from "@/components/video-upload-prompt"
 import { VideoLoading } from "@/components/video-loading"
 import { ProcessingButton } from "@/components/processing-button"
 import { Label } from "@/components/ui/label"
@@ -21,7 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
  */
 export function OverlayScreen() {
   const router = useRouter()
-  const { videoData, isLoading } = useRequireVideo()
+  const { videoData, isLoading, needsUpload } = useRequireVideo()
   const videoRef = useRef<HTMLVideoElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -152,6 +153,10 @@ export function OverlayScreen() {
 
   const formatFileSize = (bytes: number) => {
     return (bytes / (1024 * 1024)).toFixed(2) + " MB"
+  }
+
+  if (needsUpload) {
+    return <VideoUploadPrompt />
   }
 
   if (isLoading || !videoData) {

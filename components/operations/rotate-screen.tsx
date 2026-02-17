@@ -5,6 +5,7 @@ import { RotateCw, FlipHorizontal, FlipVertical } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { ActionConfig } from "@/lib/video-context"
 import { useRequireVideo } from "@/lib/use-require-video"
+import { VideoUploadPrompt } from "@/components/video-upload-prompt"
 import { useVideoUrl } from "@/lib/use-video-url"
 import { ProcessingButton } from "@/components/processing-button"
 import { VideoPreview } from "@/components/video-preview"
@@ -30,7 +31,7 @@ function isLosslessRotationSupported(filename: string): boolean {
  * Uses lossless metadata rotation for MP4/MOV when only rotating (no flips).
  */
 export function RotateScreen() {
-  const { videoData, isLoading } = useRequireVideo()
+  const { videoData, isLoading, needsUpload } = useRequireVideo()
   const videoUrl = useVideoUrl(videoData?.file)
   const [rotation, setRotation] = useState(0)
   const [isFlipHorizontal, setIsFlipHorizontal] = useState(false)
@@ -72,6 +73,10 @@ export function RotateScreen() {
   }
 
   const hasTransformation = rotation !== 0 || isFlipHorizontal || isFlipVertical
+
+  if (needsUpload) {
+    return <VideoUploadPrompt />
+  }
 
   if (isLoading || !videoData) {
     return <VideoLoading />

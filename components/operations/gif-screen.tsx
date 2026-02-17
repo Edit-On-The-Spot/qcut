@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft, Play, Pause } from "lucide-react"
 import type { ActionConfig } from "@/lib/video-context"
 import { useRequireVideo } from "@/lib/use-require-video"
+import { VideoUploadPrompt } from "@/components/video-upload-prompt"
 import { VideoLoading } from "@/components/video-loading"
 import { ProcessingButton } from "@/components/processing-button"
 import { Label } from "@/components/ui/label"
@@ -21,7 +22,7 @@ import { snapTimeToFrame } from "@/lib/time-utils"
  */
 export function GifScreen() {
   const router = useRouter()
-  const { videoData, setActionConfig, isLoading } = useRequireVideo()
+  const { videoData, setActionConfig, isLoading, needsUpload } = useRequireVideo()
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
@@ -110,6 +111,10 @@ export function GifScreen() {
       scale: scale[0],
     },
   })
+
+  if (needsUpload) {
+    return <VideoUploadPrompt />
+  }
 
   if (isLoading || !videoData) {
     return <VideoLoading />

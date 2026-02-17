@@ -1,26 +1,19 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 import { useVideo } from "./video-context"
 
-/** How long to wait for video data before redirecting (ms) */
+/** How long to wait for video data before showing upload prompt (ms) */
 const WAIT_TIMEOUT_MS = 500
 
 /**
  * Hook that requires video data to be present.
  * Waits briefly for video data to appear (handles SPA navigation timing),
- * then redirects to home if no video data is found.
+ * then signals that the user needs to upload a video.
  */
 export function useRequireVideo() {
-  const router = useRouter()
   const { videoData, setVideoData, actionConfig, setActionConfig, reset } = useVideo()
   const [isWaiting, setIsWaiting] = useState(!videoData)
-  const hasRedirected = useRef(false)
-
-  useEffect(() => {
-    console.log("[useRequireVideo] videoData:", videoData ? `${videoData.file.name} (${videoData.file.size} bytes)` : "null")
-  }, [videoData])
 
   // If video data arrives, stop waiting
   useEffect(() => {
@@ -29,21 +22,18 @@ export function useRequireVideo() {
     }
   }, [videoData])
 
-  // If no video data after timeout, redirect to home
+  // If no video data after timeout, stop waiting (shows upload prompt)
   useEffect(() => {
-    if (videoData || hasRedirected.current) return
+    if (videoData) return
 
     const timer = setTimeout(() => {
-      if (!videoData && !hasRedirected.current) {
-        console.log("[useRequireVideo] No video data after timeout, redirecting to home")
-        hasRedirected.current = true
+      if (!videoData) {
         setIsWaiting(false)
-        router.replace("/")
       }
     }, WAIT_TIMEOUT_MS)
 
     return () => clearTimeout(timer)
-  }, [videoData, router])
+  }, [videoData])
 
   return {
     videoData,
@@ -55,5 +45,7 @@ export function useRequireVideo() {
     isReady: !!videoData,
     /** True when waiting for video data to be available */
     isLoading: isWaiting && !videoData,
+    /** True when no video data is available and the user needs to upload */
+    needsUpload: !isWaiting && !videoData,
   }
 }

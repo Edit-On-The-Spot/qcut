@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useRequireVideo } from "@/lib/use-require-video"
 import { VideoLoading } from "@/components/video-loading"
+import { VideoUploadPrompt } from "@/components/video-upload-prompt"
 import type { ActionType } from "@/lib/video-context"
 import { trackActionSelect } from "@/lib/analytics"
 
@@ -116,7 +117,7 @@ const actions: Array<{
  */
 export function ActionsScreen() {
   const router = useRouter()
-  const { videoData, isLoading } = useRequireVideo()
+  const { videoData, isLoading, needsUpload } = useRequireVideo()
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null)
 
   // Prefetch action routes so router.push() uses SPA navigation
@@ -165,6 +166,10 @@ export function ActionsScreen() {
   const handleActionClick = (type: ActionType) => {
     trackActionSelect(type)
     router.push(`/${type}`)
+  }
+
+  if (needsUpload) {
+    return <VideoUploadPrompt />
   }
 
   if (isLoading || !videoData) {

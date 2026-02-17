@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft, Play, Pause, Volume2, VolumeX, Scissors, X, Loader2 } from "lucide-react"
 import type { ActionConfig } from "@/lib/video-context"
 import { useRequireVideo } from "@/lib/use-require-video"
+import { VideoUploadPrompt } from "@/components/video-upload-prompt"
 import { ProcessingButton } from "@/components/processing-button"
 import { useVideoFramerate } from "@/lib/use-video-framerate"
 import { useFFmpegThumbnails } from "@/lib/use-ffmpeg-thumbnails"
@@ -21,7 +22,7 @@ import { useMarkerDrag } from "@/lib/use-marker-drag"
  */
 export function TrimScreen() {
   const router = useRouter()
-  const { videoData, setActionConfig, isLoading } = useRequireVideo()
+  const { videoData, setActionConfig, isLoading, needsUpload } = useRequireVideo()
   const videoRef = useRef<HTMLVideoElement>(null)
   const thumbnailContainerRef = useRef<HTMLDivElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -322,6 +323,10 @@ export function TrimScreen() {
       end: snapTime(endTime).toFixed(2),
     },
   })
+
+  if (needsUpload) {
+    return <VideoUploadPrompt />
+  }
 
   if (isLoading || !videoData) {
     return (
