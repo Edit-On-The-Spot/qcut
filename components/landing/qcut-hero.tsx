@@ -47,19 +47,19 @@ export const QcutHero = ({ onSelectVideo }: QcutHeroProps) => {
 
         {/* Trust Badges */}
         <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 max-w-2xl mx-auto opacity-0 animate-fade-in animation-delay-300">
-          <div className="flex items-center justify-center sm:justify-end gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center justify-center sm:justify-end gap-2 text-base text-muted-foreground">
             <Lock className="h-4 w-4 text-primary" />
             <span>100% Private — files stay on your device</span>
           </div>
-          <div className="flex items-center justify-center sm:justify-start gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center justify-center sm:justify-start gap-2 text-base text-muted-foreground">
             <Zap className="h-4 w-4 text-primary" />
             <span>Lightning fast — no upload wait times</span>
           </div>
-          <div className="flex items-center justify-center sm:justify-end gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center justify-center sm:justify-end gap-2 text-base text-muted-foreground">
             <Target className="h-4 w-4 text-primary" />
             <span>No watermarks</span>
           </div>
-          <div className="flex items-center justify-center sm:justify-start gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center justify-center sm:justify-start gap-2 text-base text-muted-foreground">
             <UserX className="h-4 w-4 text-primary" />
             <span>No account required</span>
           </div>
