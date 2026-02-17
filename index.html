@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0a0a" />
+
+    <title>Qcut - Lightning-fast in-browser video editor</title>
+    <meta name="description" content="Simple, powerful video editing powered by FFmpeg" />
+    <link rel="canonical" href="https://qcut.app/" />
+
+    <!-- Favicon -->
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" href="/favicon-16x16.png" sizes="16x16" type="image/png" />
+    <link rel="icon" href="/favicon-32x32.png" sizes="32x32" type="image/png" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Qcut" />
+
+    <!-- Fonts: Geist via Google Fonts CDN -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap" rel="stylesheet" />
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-8508P87GEX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-8508P87GEX');
+    </script>
+
+    <!-- Structured data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "url": "https://qcut.app/",
+        "name": "Qcut",
+        "description": "Qcut is a lightning-fast in-browser video editor. Cut, trim, resize, convert formats, extract audio, create GIFs and export high-quality videos directly in your browser for free — no account, no upload, no watermarks.",
+        "publisher": {
+          "@type": "Organization",
+          "name": "Edit on the Spot",
+          "url": "https://editonthespot.com/"
+        },
+        "inLanguage": "en"
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Qcut",
+        "url": "https://qcut.app/",
+        "description": "Free browser video editor that lets users cut, trim, convert and edit videos without creating an account or uploading files to a server.",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Web",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD",
+          "url": "https://qcut.app/"
+        },
+        "featureList": [
+          "Trim & Cut unwanted parts of videos",
+          "Convert video formats (MP4, WebM, MOV, AVI, MKV)",
+          "Extract audio tracks (MP3, WAV)",
+          "Resize & Crop video dimensions",
+          "Compress videos to smaller file sizes",
+          "Merge audio + video files",
+          "Join multiple clips together",
+          "Extract screenshots/frames",
+          "Create GIFs from videos",
+          "Normalize audio levels",
+          "Rotate & flip videos",
+          "Add Watermarks"
+        ],
+        "publisher": {
+          "@type": "Organization",
+          "name": "Edit on the Spot",
+          "url": "https://editonthespot.com/"
+        },
+        "inLanguage": "en"
+      }
+    </script>
+  </head>
+  <body class="font-sans antialiased">
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

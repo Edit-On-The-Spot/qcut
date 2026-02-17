@@ -1,6 +1,6 @@
 #!/bin/bash
 # Deploy qcut to S3/CloudFront
-# Builds the Next.js static export and syncs to S3
+# Builds the Vite static export and syncs to S3
 #
 # Usage: ./deploy.sh
 #
@@ -38,12 +38,12 @@ echo "[1/7] Installing dependencies..."
 CI=true pnpm install --frozen-lockfile
 
 echo ""
-echo "[2/7] Building Next.js static export..."
+echo "[2/7] Building Vite static export..."
 pnpm build
 
 echo ""
 echo "[3/7] Uploading HTML files to S3 (no-cache)..."
-AWS_PROFILE=$AWS_PROFILE aws s3 sync out/ s3://$S3_BUCKET/ \
+AWS_PROFILE=$AWS_PROFILE aws s3 sync dist/ s3://$S3_BUCKET/ \
   --exclude "*" \
   --include "*.html" \
   --cache-control "no-cache" \
@@ -51,14 +51,14 @@ AWS_PROFILE=$AWS_PROFILE aws s3 sync out/ s3://$S3_BUCKET/ \
 
 echo ""
 echo "[4/7] Uploading hashed assets to S3 (immutable cache)..."
-AWS_PROFILE=$AWS_PROFILE aws s3 sync out/_next/static/ s3://$S3_BUCKET/_next/static/ \
+AWS_PROFILE=$AWS_PROFILE aws s3 sync dist/assets/ s3://$S3_BUCKET/assets/ \
   --cache-control "public, max-age=31536000, immutable"
 
 echo ""
 echo "[5/7] Uploading other static assets to S3 (1 day cache)..."
-AWS_PROFILE=$AWS_PROFILE aws s3 sync out/ s3://$S3_BUCKET/ \
+AWS_PROFILE=$AWS_PROFILE aws s3 sync dist/ s3://$S3_BUCKET/ \
   --exclude "*.html" \
-  --exclude "_next/static/*" \
+  --exclude "assets/*" \
   --cache-control "public, max-age=86400" \
   --delete
 
