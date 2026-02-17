@@ -12,8 +12,14 @@ export function createFooter(): Component {
     <div class="max-w-5xl mx-auto">
       <div class="flex flex-col md:flex-row items-center justify-between gap-6">
         <div class="flex flex-col items-center md:items-start gap-2">
-          <img src="/qcut-logo.png" alt="Qcut" class="h-10 w-auto dark:hidden" width="90" height="36" />
-          <img src="/qcut-logo-on-dark.png" alt="Qcut" class="h-10 w-auto hidden dark:block" width="80" height="32" />
+          <picture class="dark:hidden">
+            <source srcset="/qcut-logo.webp" type="image/webp" />
+            <img src="/qcut-logo.png" alt="Qcut" class="h-10 w-auto" width="90" height="36" />
+          </picture>
+          <picture class="hidden dark:block">
+            <source srcset="/qcut-logo-on-dark.webp" type="image/webp" />
+            <img src="/qcut-logo-on-dark.png" alt="Qcut" class="h-10 w-auto" width="80" height="32" />
+          </picture>
           <span class="text-sm text-muted-foreground text-center md:text-left">
             Simple video editing in your browser.<br />
             Your files. Your device. Your privacy.

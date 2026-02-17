@@ -17,8 +17,14 @@ export function createHeader(): Component {
     <div class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <a href="/" data-link class="flex items-center gap-2">
-          <img src="/qcut-logo.png" alt="Qcut" class="h-9 w-auto dark:hidden" width="80" height="32" />
-          <img src="/qcut-logo-on-dark.png" alt="Qcut" class="h-9 w-auto hidden dark:block" width="80" height="32" />
+          <picture class="dark:hidden">
+            <source srcset="/qcut-logo.webp" type="image/webp" />
+            <img src="/qcut-logo.png" alt="Qcut" class="h-9 w-auto" width="80" height="32" />
+          </picture>
+          <picture class="hidden dark:block">
+            <source srcset="/qcut-logo-on-dark.webp" type="image/webp" />
+            <img src="/qcut-logo-on-dark.png" alt="Qcut" class="h-9 w-auto" width="80" height="32" />
+          </picture>
         </a>
         <a href="https://www.editonthespot.com/" target="_blank" rel="noopener noreferrer" class="text-[10px] font-medium text-muted-foreground/70 hover:text-foreground transition-colors hidden sm:inline-block pt-1">
           Powered by Edit on the Spot
