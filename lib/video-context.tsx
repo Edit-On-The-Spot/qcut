@@ -4,6 +4,7 @@ import { useCallback } from "react"
 import { atom, useAtom } from "jotai"
 import { FFmpeg } from "@ffmpeg/ffmpeg"
 import { createLogger } from "./logger"
+import { clearVideoData } from "./video-storage"
 
 const log = createLogger("video-context")
 
@@ -75,6 +76,8 @@ export function useVideo() {
     setActionConfig(null)
     // Clear thumbnail cache to prevent memory leak
     setThumbnailCache(new Map())
+    // Clear persisted video from IndexedDB
+    clearVideoData().catch(() => {})
     log.debug("Thumbnail cache cleared")
   }
 
