@@ -52,16 +52,11 @@ export function ImportScreen() {
     pendingActionRef.current = pendingAction
   }, [pendingAction])
 
-  // Prefetch destination routes so router.push() uses SPA navigation
+  // Prefetch /actions only — action routes are prefetched from the actions page.
+  // Prefetching all 13 routes at once causes connection contention on iOS Safari,
+  // which can make router.push fall back to full page navigation and lose state.
   useEffect(() => {
-    const actionTypes: ActionType[] = [
-      "trim", "convert", "extract-audio", "compress", "resize", "merge",
-      "combine", "frame-extract", "gif", "normalize-audio", "rotate", "overlay",
-    ]
     router.prefetch("/actions")
-    for (const type of actionTypes) {
-      router.prefetch(`/${type}`)
-    }
   }, [router])
 
   const handleSelectVideo = () => {
@@ -138,17 +133,15 @@ export function ImportScreen() {
       format: file.name.split(".").pop()?.toUpperCase(),
     })
 
-    // Navigate after a microtask to ensure atom update propagates
-    queueMicrotask(() => {
-      // Use ref to get latest pending action (avoids stale closure)
-      const action = pendingActionRef.current
-      const destination = action ? `/${action}` : "/actions"
-      log.debug("Navigating to: %s (pendingAction: %s)", destination, action)
-      router.push(destination)
-      if (action) {
-        setPendingAction(null)
-      }
-    })
+    // Navigate immediately — Jotai's atom store updates synchronously,
+    // so the new route's component will read the correct value on mount.
+    const action = pendingActionRef.current
+    const destination = action ? `/${action}` : "/actions"
+    log.debug("Navigating to: %s (pendingAction: %s)", destination, action)
+    router.push(destination)
+    if (action) {
+      setPendingAction(null)
+    }
 
     // Load file data in background (not needed for navigation)
     void file
@@ -170,6 +163,8 @@ export function ImportScreen() {
     pendingActionRef.current = actionType
     setPendingAction(actionType)
     setIsModalOpen(true)
+    // Prefetch this specific route while user selects a file in the modal
+    router.prefetch(`/${actionType}`)
     trackFeatureClick(actionType)
   }
 
