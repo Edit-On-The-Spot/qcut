@@ -122,7 +122,7 @@ export function createProcessingButton(options: ProcessingButtonOptions): Compon
   }
 
   // Subscribe to processor state changes
-  processor.subscribe(() => render())
+  const processorUnsub = processor.subscribe(() => render())
 
   // Initial render
   render()
@@ -137,6 +137,7 @@ export function createProcessingButton(options: ProcessingButtonOptions): Compon
     processor,
     destroy: () => {
       storeUnsub()
+      processorUnsub()
       if (etaInterval) clearInterval(etaInterval)
     },
   }
