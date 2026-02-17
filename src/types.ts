@@ -1,5 +1,3 @@
-import type { FFmpeg } from "@ffmpeg/ffmpeg"
-
 export type ActionType =
   | "convert"
   | "compress"
@@ -27,15 +25,6 @@ export interface VideoData {
 export interface ActionConfig {
   type: ActionType
   params: Record<string, unknown>
-}
-
-export interface AppState {
-  ffmpeg: FFmpeg | null
-  isFFmpegLoaded: boolean
-  ffmpegMessage: string
-  thumbnailCache: Map<string, string>
-  isProcessing: boolean
-  processingAbortController: AbortController | null
 }
 
 export interface RouteConfig {

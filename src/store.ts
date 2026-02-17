@@ -1,5 +1,5 @@
-import { FFmpeg } from "@ffmpeg/ffmpeg"
-import type { AppState, VideoData } from "./types"
+import type { FFmpeg } from "@ffmpeg/ffmpeg"
+import type { VideoData } from "./types"
 import { createLogger } from "./lib/logger"
 
 const log = createLogger("store")
@@ -11,17 +11,17 @@ const listeners = new Set<Listener>()
 // VideoData stored at module level — set synchronously before navigation
 let videoData: VideoData | null = null
 
-const state: AppState = {
-  ffmpeg: null,
+const state = {
+  ffmpeg: null as FFmpeg | null,
   isFFmpegLoaded: false,
   ffmpegMessage: "",
-  thumbnailCache: new Map(),
+  thumbnailCache: new Map<string, string>(),
   isProcessing: false,
-  processingAbortController: null,
+  processingAbortController: null as AbortController | null,
 }
 
 /** Returns a snapshot of the current app state. */
-export function getState(): Readonly<AppState> {
+export function getState(): Readonly<typeof state> {
   return state
 }
 
@@ -36,7 +36,7 @@ export function setVideoData(data: VideoData | null): void {
 }
 
 /** Merges partial state updates and notifies subscribers. */
-export function setState(partial: Partial<AppState>): void {
+export function setState(partial: Partial<typeof state>): void {
   Object.assign(state, partial)
   listeners.forEach((fn) => fn())
 }
@@ -77,6 +77,7 @@ export async function loadFFmpeg(): Promise<void> {
   log.info("Starting FFmpeg load")
 
   ffmpegLoadPromise = (async () => {
+    const { FFmpeg } = await import("@ffmpeg/ffmpeg")
     const instance = new FFmpeg()
     instance.on("log", ({ message }) => {
       log.debug("FFmpeg: %s", message)
