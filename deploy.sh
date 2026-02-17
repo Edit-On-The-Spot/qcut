@@ -30,15 +30,19 @@ CLOUDFRONT_DISTRIBUTION_ID="${CLOUDFRONT_DISTRIBUTION_ID:?CLOUDFRONT_DISTRIBUTIO
 echo "=== qcut.app Deploy ==="
 echo ""
 
-echo "[1/6] Installing dependencies..."
+DEPLOY_TAG="deploy-$(date +%Y%m%d-%H%M%S)"
+echo "Deploy tag: $DEPLOY_TAG"
+echo ""
+
+echo "[1/7] Installing dependencies..."
 CI=true pnpm install --frozen-lockfile
 
 echo ""
-echo "[2/6] Building Next.js static export..."
+echo "[2/7] Building Next.js static export..."
 pnpm build
 
 echo ""
-echo "[3/6] Uploading HTML files to S3 (no-cache)..."
+echo "[3/7] Uploading HTML files to S3 (no-cache)..."
 AWS_PROFILE=$AWS_PROFILE aws s3 sync out/ s3://$S3_BUCKET/ \
   --exclude "*" \
   --include "*.html" \
@@ -46,12 +50,12 @@ AWS_PROFILE=$AWS_PROFILE aws s3 sync out/ s3://$S3_BUCKET/ \
   --delete
 
 echo ""
-echo "[4/6] Uploading hashed assets to S3 (immutable cache)..."
+echo "[4/7] Uploading hashed assets to S3 (immutable cache)..."
 AWS_PROFILE=$AWS_PROFILE aws s3 sync out/_next/static/ s3://$S3_BUCKET/_next/static/ \
   --cache-control "public, max-age=31536000, immutable"
 
 echo ""
-echo "[5/6] Uploading other static assets to S3 (1 day cache)..."
+echo "[5/7] Uploading other static assets to S3 (1 day cache)..."
 AWS_PROFILE=$AWS_PROFILE aws s3 sync out/ s3://$S3_BUCKET/ \
   --exclude "*.html" \
   --exclude "_next/static/*" \
@@ -59,12 +63,18 @@ AWS_PROFILE=$AWS_PROFILE aws s3 sync out/ s3://$S3_BUCKET/ \
   --delete
 
 echo ""
-echo "[6/6] Invalidating CloudFront cache..."
+echo "[6/7] Invalidating CloudFront cache..."
 AWS_PROFILE=$AWS_PROFILE aws cloudfront create-invalidation \
   --distribution-id $CLOUDFRONT_DISTRIBUTION_ID \
   --paths "/*" \
   --output text
 
 echo ""
+echo "[7/7] Tagging deployment in git..."
+git tag "$DEPLOY_TAG"
+git push origin "$DEPLOY_TAG"
+
+echo ""
 echo "=== Deploy complete! ==="
 echo "Site: https://qcut.app"
+echo "Tag:  $DEPLOY_TAG"
