@@ -2,7 +2,11 @@ import { NormalizeAudioScreen } from "@/components/operations/normalize-audio-sc
 import { OperationLayout } from "@/components/operation-layout"
 import { createPageMetadata } from "@/lib/seo"
 
-export const metadata = createPageMetadata("/normalize-audio")
+export const metadata = createPageMetadata("/normalize-audio", {
+  title: "Normalize Audio - Qcut",
+  description:
+    "Adjust audio levels for consistent loudness. Set target LUFS, true peak, and loudness range. Free in-browser audio normalizer.",
+})
 
 export default function NormalizeAudioPage() {
   return (
