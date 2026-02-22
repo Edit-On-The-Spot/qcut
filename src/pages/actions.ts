@@ -78,7 +78,7 @@ export default function createActionsPage(): Component {
     const card = document.createElement("div")
     card.className = "rounded-xl border bg-card text-card-foreground shadow-sm p-6"
     card.innerHTML = `
-      <div class="flex flex-wrap items-center gap-4">
+      <div class="flex flex-col sm:flex-row sm:items-center gap-4">
         <div class="w-24 h-16 rounded-lg bg-muted overflow-hidden flex-shrink-0" id="thumb-container">
           <div class="w-full h-full flex items-center justify-center">
             <div class="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
@@ -153,14 +153,20 @@ function generateThumbnail(file: File, container: HTMLElement): void {
   const video = document.createElement("video")
   const objectUrl = URL.createObjectURL(file)
   video.src = objectUrl
-  video.preload = "metadata"
+  video.preload = "auto"
   video.muted = true
+  video.playsInline = true
 
-  video.onloadeddata = () => {
+  video.onloadedmetadata = () => {
     video.currentTime = Math.min(1, (video.duration || 1) * 0.1)
+    // On iOS, a muted video must attempt play before seeking produces a drawable frame
+    video.play().catch(() => {
+      // Autoplay blocked — seek will still attempt on iOS; onseeked handles the rest
+    })
   }
 
   video.onseeked = () => {
+    video.pause()
     const canvas = document.createElement("canvas")
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight

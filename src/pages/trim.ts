@@ -125,6 +125,7 @@ export default function createTrimPage(): Component {
     videoEl = document.createElement("video")
     videoEl.src = urlResult.url
     videoEl.className = "w-full h-full object-contain"
+    videoEl.playsInline = true
     videoWrapper.appendChild(videoEl)
     content.appendChild(videoWrapper)
 
@@ -349,12 +350,13 @@ export default function createTrimPage(): Component {
     }
     thumbContainer.addEventListener("wheel", handleWheel, { passive: false })
 
-    // Thumbnail panning via click-drag
-    thumbContainer.addEventListener("mousedown", (e: MouseEvent) => {
+    // Thumbnail panning via pointer drag (mouse and touch)
+    thumbContainer.addEventListener("pointerdown", (e: PointerEvent) => {
       const target = e.target as HTMLElement
       if (target.classList.contains("cursor-ew-resize") || target.closest(".cursor-ew-resize")) return
 
       e.preventDefault()
+      thumbContainer.setPointerCapture(e.pointerId)
       isPanning = true
       thumbContainer.style.cursor = "grabbing"
 
@@ -363,7 +365,7 @@ export default function createTrimPage(): Component {
       const startVisibleTime = zState.visibleStartSec
       const visDuration = zState.visibleDurationSec
 
-      const handleMouseMove = (moveEvent: MouseEvent): void => {
+      const handlePointerMove = (moveEvent: PointerEvent): void => {
         const deltaX = moveEvent.clientX - startX
         const deltaTime = (deltaX / containerWidthPx) * visDuration
         let newStart = startVisibleTime - deltaTime
@@ -371,15 +373,15 @@ export default function createTrimPage(): Component {
         zoomHandle!.setVisibleRange(newStart, visDuration)
       }
 
-      const handleMouseUp = (): void => {
+      const handlePointerUp = (): void => {
         isPanning = false
         thumbContainer.style.cursor = "grab"
-        document.removeEventListener("mousemove", handleMouseMove)
-        document.removeEventListener("mouseup", handleMouseUp)
+        document.removeEventListener("pointermove", handlePointerMove)
+        document.removeEventListener("pointerup", handlePointerUp)
       }
 
-      document.addEventListener("mousemove", handleMouseMove)
-      document.addEventListener("mouseup", handleMouseUp)
+      document.addEventListener("pointermove", handlePointerMove)
+      document.addEventListener("pointerup", handlePointerUp)
     })
 
     // Create marker drags
@@ -502,10 +504,10 @@ export default function createTrimPage(): Component {
     const scrubStartMarker = container.querySelector("#trim-scrub-start-marker") as HTMLElement
     const scrubEndMarker = container.querySelector("#trim-scrub-end-marker") as HTMLElement
     if (scrubStartMarker && scrubberMarkerDrag) {
-      scrubStartMarker.onmousedown = (e) => scrubberMarkerDrag!.handleStartMarkerMouseDown(e)
+      scrubStartMarker.onpointerdown = (e) => scrubberMarkerDrag!.handleStartMarkerPointerDown(e)
     }
     if (scrubEndMarker && scrubberMarkerDrag) {
-      scrubEndMarker.onmousedown = (e) => scrubberMarkerDrag!.handleEndMarkerMouseDown(e)
+      scrubEndMarker.onpointerdown = (e) => scrubberMarkerDrag!.handleEndMarkerPointerDown(e)
     }
   }
 
@@ -667,8 +669,8 @@ export default function createTrimPage(): Component {
       marker.style.marginLeft = "-0.5rem"
       marker.title = `Start: ${formatTime(startTimeSec)}`
       marker.innerHTML = `<div class="absolute inset-0 flex items-center justify-center text-[10px] text-white font-bold">S</div>`
-      marker.addEventListener("mousedown", (e) => {
-        thumbnailMarkerDrag?.handleStartMarkerMouseDown(e)
+      marker.addEventListener("pointerdown", (e) => {
+        thumbnailMarkerDrag?.handleStartMarkerPointerDown(e)
       })
       thumbSection.appendChild(marker)
     }
@@ -682,8 +684,8 @@ export default function createTrimPage(): Component {
       marker.style.marginLeft = "-0.5rem"
       marker.title = `End: ${formatTime(endTimeSec)}`
       marker.innerHTML = `<div class="absolute inset-0 flex items-center justify-center text-[10px] text-white font-bold">E</div>`
-      marker.addEventListener("mousedown", (e) => {
-        thumbnailMarkerDrag?.handleEndMarkerMouseDown(e)
+      marker.addEventListener("pointerdown", (e) => {
+        thumbnailMarkerDrag?.handleEndMarkerPointerDown(e)
       })
       thumbSection.appendChild(marker)
     }
