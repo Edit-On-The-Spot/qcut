@@ -34,6 +34,7 @@ async function createWorker(videoUrl: string): Promise<ThumbnailWorker> {
   video.src = videoUrl
   video.muted = true
   video.preload = "auto"
+  video.playsInline = true
 
   const canvas = document.createElement("canvas")
   canvas.width = THUMBNAIL_WIDTH_PX
@@ -62,7 +63,11 @@ async function generateThumbnail(worker: ThumbnailWorker, timestampSec: number):
   video.currentTime = timestampSec
 
   await new Promise<void>((resolve) => {
-    video.onseeked = () => resolve()
+    const timeoutId = setTimeout(resolve, 3000)
+    video.onseeked = () => {
+      clearTimeout(timeoutId)
+      resolve()
+    }
   })
 
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height)

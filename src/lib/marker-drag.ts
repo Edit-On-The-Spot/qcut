@@ -29,15 +29,16 @@ export interface MarkerDragOptions {
  * Creates draggable marker handlers for start/end time markers on a timeline.
  * Supports frame snapping, auto-swap (if start dragged past end or vice versa),
  * and real-time video preview during drag.
+ * Uses the Pointer Events API for unified mouse and touch support.
  * @param options - Configuration for marker dragging behavior
- * @returns Object with mousedown handlers for start/end markers and cleanup
+ * @returns Object with pointerdown handlers for start/end markers and cleanup
  */
 export function createMarkerDrag(options: MarkerDragOptions): {
-  handleStartMarkerMouseDown: (e: MouseEvent) => void
-  handleEndMarkerMouseDown: (e: MouseEvent) => void
+  handleStartMarkerPointerDown: (e: PointerEvent) => void
+  handleEndMarkerPointerDown: (e: PointerEvent) => void
   destroy: () => void
 } {
-  let activeMoveHandler: ((e: MouseEvent) => void) | null = null
+  let activeMoveHandler: ((e: PointerEvent) => void) | null = null
   let activeUpHandler: (() => void) | null = null
 
   /**
@@ -54,23 +55,24 @@ export function createMarkerDrag(options: MarkerDragOptions): {
    */
   function cleanupListeners(): void {
     if (activeMoveHandler) {
-      document.removeEventListener("mousemove", activeMoveHandler)
+      document.removeEventListener("pointermove", activeMoveHandler)
       activeMoveHandler = null
     }
     if (activeUpHandler) {
-      document.removeEventListener("mouseup", activeUpHandler)
+      document.removeEventListener("pointerup", activeUpHandler)
       activeUpHandler = null
     }
   }
 
   /**
-   * Handles mousedown on the start marker. Initiates a drag session that
-   * tracks mouse movement, snaps to frames, auto-swaps if dragged past end,
-   * and provides real-time video preview.
+   * Handles pointerdown on the start marker. Initiates a drag session that
+   * tracks pointer movement, snaps to frames, auto-swaps if dragged past end,
+   * and provides real-time video preview. Works for both mouse and touch input.
    */
-  function handleStartMarkerMouseDown(e: MouseEvent): void {
+  function handleStartMarkerPointerDown(e: PointerEvent): void {
     e.preventDefault()
     e.stopPropagation()
+    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
 
     cleanupListeners()
     options.onDragStateChange(true, "start")
@@ -78,11 +80,11 @@ export function createMarkerDrag(options: MarkerDragOptions): {
     const parentElement = (e.currentTarget as HTMLElement).parentElement
     if (!parentElement) return
 
-    const handleMouseMove = (moveEvent: MouseEvent): void => {
+    const handlePointerMove = (moveEvent: PointerEvent): void => {
       const rect = parentElement.getBoundingClientRect()
-      const mouseX = moveEvent.clientX - rect.left
+      const pointerX = moveEvent.clientX - rect.left
       const newTime = calculateTimeFromMousePosition(
-        mouseX,
+        pointerX,
         options.containerWidth,
         options.visibleStart,
         options.visibleEnd
@@ -102,25 +104,26 @@ export function createMarkerDrag(options: MarkerDragOptions): {
       updateVideoPreview(snappedTime)
     }
 
-    const handleMouseUp = (): void => {
+    const handlePointerUp = (): void => {
       options.onDragStateChange(false, null)
       cleanupListeners()
     }
 
-    activeMoveHandler = handleMouseMove
-    activeUpHandler = handleMouseUp
-    document.addEventListener("mousemove", handleMouseMove)
-    document.addEventListener("mouseup", handleMouseUp)
+    activeMoveHandler = handlePointerMove
+    activeUpHandler = handlePointerUp
+    document.addEventListener("pointermove", handlePointerMove)
+    document.addEventListener("pointerup", handlePointerUp)
   }
 
   /**
-   * Handles mousedown on the end marker. Initiates a drag session that
-   * tracks mouse movement, snaps to frames, auto-swaps if dragged before start,
-   * and provides real-time video preview.
+   * Handles pointerdown on the end marker. Initiates a drag session that
+   * tracks pointer movement, snaps to frames, auto-swaps if dragged before start,
+   * and provides real-time video preview. Works for both mouse and touch input.
    */
-  function handleEndMarkerMouseDown(e: MouseEvent): void {
+  function handleEndMarkerPointerDown(e: PointerEvent): void {
     e.preventDefault()
     e.stopPropagation()
+    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
 
     cleanupListeners()
     options.onDragStateChange(true, "end")
@@ -128,11 +131,11 @@ export function createMarkerDrag(options: MarkerDragOptions): {
     const parentElement = (e.currentTarget as HTMLElement).parentElement
     if (!parentElement) return
 
-    const handleMouseMove = (moveEvent: MouseEvent): void => {
+    const handlePointerMove = (moveEvent: PointerEvent): void => {
       const rect = parentElement.getBoundingClientRect()
-      const mouseX = moveEvent.clientX - rect.left
+      const pointerX = moveEvent.clientX - rect.left
       const newTime = calculateTimeFromMousePosition(
-        mouseX,
+        pointerX,
         options.containerWidth,
         options.visibleStart,
         options.visibleEnd
@@ -152,20 +155,20 @@ export function createMarkerDrag(options: MarkerDragOptions): {
       updateVideoPreview(snappedTime)
     }
 
-    const handleMouseUp = (): void => {
+    const handlePointerUp = (): void => {
       options.onDragStateChange(false, null)
       cleanupListeners()
     }
 
-    activeMoveHandler = handleMouseMove
-    activeUpHandler = handleMouseUp
-    document.addEventListener("mousemove", handleMouseMove)
-    document.addEventListener("mouseup", handleMouseUp)
+    activeMoveHandler = handlePointerMove
+    activeUpHandler = handlePointerUp
+    document.addEventListener("pointermove", handlePointerMove)
+    document.addEventListener("pointerup", handlePointerUp)
   }
 
   return {
-    handleStartMarkerMouseDown,
-    handleEndMarkerMouseDown,
+    handleStartMarkerPointerDown,
+    handleEndMarkerPointerDown,
     /**
      * Removes any active document-level event listeners.
      */

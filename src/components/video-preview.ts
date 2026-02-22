@@ -29,6 +29,7 @@ export function createVideoPreview(options: VideoPreviewOptions): Component & {
   const video = document.createElement("video")
   video.src = options.src
   video.className = "w-full h-full object-contain"
+  video.playsInline = true
   videoWrapper.appendChild(video)
   container.appendChild(videoWrapper)
 

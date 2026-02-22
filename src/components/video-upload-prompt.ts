@@ -56,6 +56,7 @@ export function createVideoUploadPrompt(onVideoLoaded: () => void): Component {
     errorDiv.classList.add("hidden")
     const video = document.createElement("video")
     video.preload = "metadata"
+    video.playsInline = true
     const objectUrl = URL.createObjectURL(file)
 
     video.onloadedmetadata = () => {
