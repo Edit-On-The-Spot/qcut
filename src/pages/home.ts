@@ -1,6 +1,6 @@
 import type { Component, ActionType } from "../types"
 import { setVideoData, getVideoData } from "../store"
-import { navigate } from "../router"
+import { navigate, actionTypePath } from "../router"
 import { createLogger } from "../lib/logger"
 import { trackVideoImport, trackVideoImportError, trackFeatureClick } from "../lib/analytics"
 import { getFileSizeWarningType } from "../lib/file-utils"
@@ -86,7 +86,7 @@ export default function createHomePage(): Component {
 
       // Navigate immediately — store updates synchronously
       const action = pendingAction
-      const destination = action ? `/${action}` : "/actions"
+      const destination = action ? (actionTypePath[action] ?? `/${action}`) : "/actions"
       log.debug("Navigating to: %s (pendingAction: %s)", destination, action)
       navigate(destination)
       pendingAction = null

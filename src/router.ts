@@ -5,6 +5,44 @@ import { createLogger } from "./lib/logger"
 
 const log = createLogger("router")
 
+/**
+ * Maps ActionType values to their canonical SEO-friendly URL paths.
+ * Used by navigation code to avoid hardcoding URL paths next to action type identifiers.
+ */
+export const actionTypePath: Record<string, string> = {
+  trim: "/trim-video-online-free",
+  convert: "/convert-video-no-watermark",
+  compress: "/compress-video-online-free",
+  resize: "/resize-video-without-cropping",
+  "extract-audio": "/extract-audio-from-video-online",
+  merge: "/merge-videos-audios-online-free",
+  combine: "/combine-clips-for-free",
+  "frame-extract": "/extract-frame-from-video-online",
+  gif: "/create-gif-from-any-clip",
+  "normalize-audio": "/audio-leveler-online",
+  rotate: "/flip-and-rotate-video-orientation",
+  overlay: "/veed-watermark-alternative",
+}
+
+/**
+ * Client-side redirects from old short paths to new SEO-friendly paths.
+ * Mirrors the server-side CloudFront Function redirects for in-app navigation.
+ */
+const redirects: Record<string, string> = {
+  "/trim": "/trim-video-online-free",
+  "/convert": "/convert-video-no-watermark",
+  "/compress": "/compress-video-online-free",
+  "/resize": "/resize-video-without-cropping",
+  "/extract-audio": "/extract-audio-from-video-online",
+  "/merge": "/merge-videos-audios-online-free",
+  "/combine": "/combine-clips-for-free",
+  "/frame-extract": "/extract-frame-from-video-online",
+  "/gif": "/create-gif-from-any-clip",
+  "/normalize-audio": "/audio-leveler-online",
+  "/rotate": "/flip-and-rotate-video-orientation",
+  "/overlay": "/veed-watermark-alternative",
+}
+
 /** Route table mapping path patterns to lazy-loaded page modules. */
 const routes: Record<string, RouteConfig> = {
   "/": {
@@ -18,76 +56,76 @@ const routes: Record<string, RouteConfig> = {
       "Select a video editing operation — trim, convert, compress, resize, extract audio, create GIFs, and more. Free browser-based video editor.",
     load: () => import("./pages/actions"),
   },
-  "/trim": {
-    title: "Trim & Cut Video - Qcut",
+  "/trim-video-online-free": {
+    title: "Trim Video Online Free (No Upload, No Watermark)",
     description:
-      "Cut and trim video segments directly in your browser. No upload required — fast, free, and private.",
+      "Trim video online for free with no upload and no watermark. Cut clips instantly in your browser with precise, lossless editing.",
     load: () => import("./pages/trim"),
   },
-  "/convert": {
-    title: "Convert Video Format - Qcut",
+  "/convert-video-no-watermark": {
+    title: "Convert Video Online Free (No Upload, No Watermark)",
     description:
-      "Convert videos between MP4, WebM, AVI, MKV and more formats. Free browser-based video converter — no upload needed.",
+      "Convert video formats like MP4, MOV, WebM, and more directly in your browser. No upload required, no watermark, and no account needed.",
     load: () => import("./pages/convert"),
   },
-  "/compress": {
-    title: "Compress Video - Qcut",
+  "/compress-video-online-free": {
+    title: "Compress Video Online Free (No Upload Required)",
     description:
-      "Reduce video file size while maintaining quality. Adjust CRF and encoding preset. Free in-browser video compressor.",
+      "Compress large videos online without uploading files. Reduce file size while preserving quality — free and watermark-free.",
     load: () => import("./pages/compress"),
   },
-  "/resize": {
-    title: "Resize Video - Qcut",
+  "/resize-video-without-cropping": {
+    title: "Resize Video Online Free (Change Aspect Ratio Instantly)",
     description:
-      "Change video dimensions with preset or custom resolutions. Free browser-based video resizer — no upload needed.",
+      "Resize video dimensions and change aspect ratio for Instagram, TikTok, or YouTube. No upload, no watermark, fully browser-based.",
     load: () => import("./pages/resize"),
   },
-  "/extract-audio": {
-    title: "Extract Audio from Video - Qcut",
+  "/extract-audio-from-video-online": {
+    title: "Extract Audio From Video Online (MP4 to MP3 Free)",
     description:
-      "Extract audio tracks from video as MP3 or WAV. Free browser-based audio extractor — no upload needed.",
+      "Extract audio from video instantly and convert to MP3 or WAV. No upload, no account, and no watermark required.",
     load: () => import("./pages/extract-audio"),
   },
-  "/merge": {
-    title: "Merge Audio & Video - Qcut",
+  "/merge-videos-audios-online-free": {
+    title: "Merge Video and Audio Online Free (No Upload)",
     description:
-      "Combine separate audio and video files into one. Free browser-based audio-video merger.",
+      "Combine video clips and audio tracks in your browser. No upload, no watermark, and no signup required.",
     load: () => import("./pages/merge"),
   },
-  "/gif": {
-    title: "Create GIF from Video - Qcut",
+  "/combine-clips-for-free": {
+    title: "Combine Video Clips Online Free (No Watermark)",
     description:
-      "Convert video clips to animated GIFs. Set start time, duration, and frame rate. Free in-browser GIF maker.",
-    load: () => import("./pages/gif"),
-  },
-  "/frame-extract": {
-    title: "Extract Frames from Video - Qcut",
-    description:
-      "Extract screenshots and frames from video as images. Free browser-based frame extractor.",
-    load: () => import("./pages/frame-extract"),
-  },
-  "/combine": {
-    title: "Combine Video Clips - Qcut",
-    description:
-      "Concatenate multiple video clips into one file. Free browser-based video joiner — no upload needed.",
+      "Stitch multiple video clips together instantly in your browser. Free, private, and watermark-free editing.",
     load: () => import("./pages/combine"),
   },
-  "/normalize-audio": {
-    title: "Normalize Audio - Qcut",
+  "/extract-frame-from-video-online": {
+    title: "Extract Frame From Video Online (High Quality JPG/PNG)",
     description:
-      "Adjust audio levels for consistent loudness. Set target LUFS, true peak, and loudness range. Free in-browser audio normalizer.",
+      "Capture high-quality still images from any video file online. Export JPG or PNG instantly with no upload required.",
+    load: () => import("./pages/frame-extract"),
+  },
+  "/create-gif-from-any-clip": {
+    title: "Create GIF From Video Online Free (No Watermark)",
+    description:
+      "Turn video clips into smooth, shareable GIFs instantly. No signup, no watermark, and fully browser-based.",
+    load: () => import("./pages/gif"),
+  },
+  "/audio-leveler-online": {
+    title: "Normalize Audio Online (Fix Video Sound Levels Free)",
+    description:
+      "Balance and normalize uneven audio levels in video instantly. Improve clarity with free, browser-based processing.",
     load: () => import("./pages/normalize-audio"),
   },
-  "/rotate": {
-    title: "Rotate & Flip Video - Qcut",
+  "/flip-and-rotate-video-orientation": {
+    title: "Rotate or Flip Video Online Free (Fix Orientation)",
     description:
-      "Rotate or flip your video with lossless metadata rotation for MP4/MOV. Free browser-based video rotator.",
+      "Fix sideways or upside-down videos instantly. Rotate or flip without quality loss, upload, or watermark.",
     load: () => import("./pages/rotate"),
   },
-  "/overlay": {
-    title: "Add Overlay to Video - Qcut",
+  "/veed-watermark-alternative": {
+    title: "Veed Watermark Alternative – Edit Videos Without Branding",
     description:
-      "Add image watermarks or overlays to your video. Position, scale, and set opacity. Free in-browser video overlay tool.",
+      "Looking for a Veed alternative without watermarks? Trim, compress, and convert videos privately in your browser with no account required.",
     load: () => import("./pages/overlay"),
   },
   "/privacy": {
@@ -127,6 +165,14 @@ function normalizePath(path: string): string {
  */
 async function renderRoute(path: string): Promise<void> {
   path = normalizePath(path)
+
+  // Check for client-side redirects before route lookup
+  const redirectTarget = redirects[path]
+  if (redirectTarget) {
+    log.debug("Redirecting %s → %s", path, redirectTarget)
+    navigate(redirectTarget, true)
+    return
+  }
 
   const route = routes[path]
   if (!route) {

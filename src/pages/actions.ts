@@ -1,6 +1,6 @@
 import type { Component, ActionType } from "../types"
 import { getVideoData } from "../store"
-import { navigate } from "../router"
+import { navigate, actionTypePath } from "../router"
 import { createVideoUploadPrompt } from "../components/video-upload-prompt"
 import { createBackButton } from "../components/back-button"
 import { trackActionSelect } from "../lib/analytics"
@@ -133,7 +133,7 @@ export default function createActionsPage(): Component {
       `
       actionCard.addEventListener("click", () => {
         trackActionSelect(action.type)
-        navigate(`/${action.type}`)
+        navigate(actionTypePath[action.type] ?? `/${action.type}`)
       })
       grid.appendChild(actionCard)
     }
