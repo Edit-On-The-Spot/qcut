@@ -166,21 +166,45 @@ function generateThumbnail(file: File, container: HTMLElement): void {
   }
 
   video.onseeked = () => {
-    video.pause()
-    const canvas = document.createElement("canvas")
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-    const ctx = canvas.getContext("2d")
-    if (ctx) {
-      ctx.drawImage(video, 0, 0)
-      const img = document.createElement("img")
-      img.src = canvas.toDataURL("image/jpeg", 0.7)
-      img.alt = "Video thumbnail"
-      img.className = "w-full h-full object-cover"
-      container.innerHTML = ""
-      container.appendChild(img)
+    video.onseeked = null // prevent duplicate fires from internal browser seeks
+
+    // Safari's onseeked fires before a decoded frame is available for drawing.
+    // Calling pause() + drawImage() immediately produces a black frame on Safari.
+    // Use requestVideoFrameCallback to wait for an actual painted frame.
+    let isDrawn = false
+    const drawFrame = (): void => {
+      if (isDrawn) return
+      isDrawn = true
+
+      if (video.videoWidth > 0 && video.videoHeight > 0) {
+        const canvas = document.createElement("canvas")
+        canvas.width = video.videoWidth
+        canvas.height = video.videoHeight
+        const ctx = canvas.getContext("2d")
+        if (ctx) {
+          ctx.drawImage(video, 0, 0)
+          const img = document.createElement("img")
+          img.src = canvas.toDataURL("image/jpeg", 0.7)
+          img.alt = "Video thumbnail"
+          img.className = "w-full h-full object-cover"
+          container.innerHTML = ""
+          container.appendChild(img)
+        }
+      }
+      video.pause()
+      video.src = ""
+      URL.revokeObjectURL(objectUrl)
     }
-    URL.revokeObjectURL(objectUrl)
+
+    if ("requestVideoFrameCallback" in video) {
+      // Timeout fallback: rVFC won't fire if the tab is backgrounded or autoplay
+      // is blocked. Matches the pattern in video-processor.ts and gif-encoder.ts.
+      const fallbackTimeoutMs = setTimeout(drawFrame, 800)
+      video.requestVideoFrameCallback(() => { clearTimeout(fallbackTimeoutMs); drawFrame() })
+    } else {
+      // Fallback: double rAF ensures a paint cycle has passed
+      requestAnimationFrame(() => requestAnimationFrame(drawFrame))
+    }
   }
 
   video.onerror = () => URL.revokeObjectURL(objectUrl)
