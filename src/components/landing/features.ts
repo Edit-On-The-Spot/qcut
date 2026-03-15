@@ -175,14 +175,14 @@ export function createFeatures(onFeatureClick: (actionType: ActionType) => void)
 
       <div class="mb-12">
         <h3 class="heading-2 mb-6 text-center">⚡ Lightning Fast</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4 items-start">
+        <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4 items-stretch">
           ${lightningCards}
         </div>
       </div>
 
       <div>
         <h3 class="heading-2 mb-6 text-center">🚀 Smart Processing</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start [&>:last-child]:lg:col-start-2">
           ${smartCards}
         </div>
       </div>
