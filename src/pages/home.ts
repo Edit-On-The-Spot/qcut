@@ -1,5 +1,5 @@
 import type { Component, ActionType } from "../types"
-import { setVideoData, getVideoData } from "../store"
+import { setVideoData, ensureVideoBytes } from "../store"
 import { navigate, actionTypePath } from "../router"
 import { createLogger } from "../lib/logger"
 import { trackVideoImport, trackVideoImportError, trackFeatureClick } from "../lib/analytics"
@@ -91,16 +91,9 @@ export default function createHomePage(): Component {
       navigate(destination)
       pendingAction = null
 
-      // Load file data in background
-      file
-        .arrayBuffer()
-        .then((buffer) => {
-          const current = getVideoData()
-          if (current?.file === file) {
-            setVideoData({ ...current, fileData: new Uint8Array(buffer) })
-          }
-        })
-        .catch(() => {})
+      // Pre-read the file bytes in the background so the cut reuses them instead
+      // of re-reading the (possibly stale) File reference later. See issue #2.
+      ensureVideoBytes().catch(() => {})
     }
 
     video.onerror = () => {

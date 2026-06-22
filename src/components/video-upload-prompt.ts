@@ -1,5 +1,5 @@
 import type { Component } from "../types"
-import { setVideoData, getVideoData } from "../store"
+import { setVideoData, ensureVideoBytes } from "../store"
 import { getFileSizeWarningType } from "../lib/file-utils"
 import { createFileSizeWarning } from "./file-size-warning"
 import { createLogger } from "../lib/logger"
@@ -70,12 +70,9 @@ export function createVideoUploadPrompt(onVideoLoaded: () => void): Component {
         format: file.name.split(".").pop()?.toUpperCase(),
       })
       onVideoLoaded()
-      file.arrayBuffer().then((buffer) => {
-        const current = getVideoData()
-        if (current?.file === file) {
-          setVideoData({ ...current, fileData: new Uint8Array(buffer) })
-        }
-      }).catch(() => {})
+      // Pre-read the file bytes in the background so the cut reuses them instead
+      // of re-reading the (possibly stale) File reference later. See issue #2.
+      ensureVideoBytes().catch(() => {})
     }
 
     video.onerror = () => {

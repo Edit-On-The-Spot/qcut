@@ -1,7 +1,7 @@
 import JSZip from "jszip"
 import type { ActionConfig } from "../types"
 import type { VideoData } from "../types"
-import { getState, getVideoData, startProcessing, finishProcessing, subscribe } from "../store"
+import { getState, getVideoData, ensureVideoBytes, startProcessing, finishProcessing, subscribe } from "../store"
 import { createLogger } from "./logger"
 import {
   trackProcessingStart,
@@ -237,8 +237,7 @@ export class VideoProcessor {
     ffmpeg.on("progress", this.progressHandler)
 
     log.info("Starting processing for: %s", config.type)
-    const buffer = await videoData.file.arrayBuffer()
-    const uint8Array = new Uint8Array(buffer)
+    const uint8Array = await ensureVideoBytes()
     const inputFileName = "input.mp4"
     await ffmpeg.writeFile(inputFileName, uint8Array)
 
