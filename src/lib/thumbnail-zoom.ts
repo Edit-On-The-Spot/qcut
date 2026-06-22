@@ -55,8 +55,9 @@ function mouseXToTimestampSec(
 /**
  * Creates a thumbnail zoom controller that manages zoom level, visible range,
  * thumbnail count, and timestamp calculations for a thumbnail strip.
- * Supports mouse wheel zoom with position-aware centering (zoom step multiplier 0.85),
- * panning, and external control of visible range.
+ * Plain wheel scroll jogs (pans) the timeline; pinch / ctrl+wheel / cmd+wheel
+ * zooms with position-aware centering (zoom step multiplier 0.85). Also supports
+ * external control of the visible range for pointer panning and playback follow.
  * @param config - Configuration for zoom calculations
  * @returns Object with state getter, event handlers, and cleanup
  */
@@ -136,6 +137,66 @@ export function createThumbnailZoom(config: ThumbnailZoomConfig): {
     return result
   }
 
+  /**
+   * Zooms the visible range in/out around the mouse position from a wheel event.
+   * Scroll up = zoom in, scroll down = zoom out. The timestamp under the cursor
+   * stays anchored so zooming feels position-aware.
+   */
+  function zoomByWheel(event: WheelEvent): void {
+    hasZoomed = true
+
+    const target = event.currentTarget as HTMLElement
+    const rect = target.getBoundingClientRect()
+    const mouseXPx = event.clientX - rect.left
+
+    const isZoomingIn = event.deltaY < 0
+    const minDur = getMinDurationSec()
+    const maxDur = getMaxDurationSec()
+
+    const effectivePrevDuration =
+      visibleDurationSec <= 0 || visibleDurationSec > maxDur ? maxDur : visibleDurationSec
+    const currentDuration = Math.max(minDur, Math.min(maxDur, effectivePrevDuration))
+    const currentStart = Math.max(0, Math.min(durationSec - currentDuration, visibleStartSec))
+
+    const mouseTimestampSec = mouseXToTimestampSec(mouseXPx, containerWidthPx, currentStart, currentDuration)
+
+    const newDuration = isZoomingIn
+      ? currentDuration * ZOOM_STEP_MULTIPLIER
+      : currentDuration / ZOOM_STEP_MULTIPLIER
+    const clampedNewDuration = Math.max(minDur, Math.min(maxDur, newDuration))
+
+    const mousePercent = containerWidthPx > 0 ? mouseXPx / containerWidthPx : 0.5
+    const newStart = mouseTimestampSec - mousePercent * clampedNewDuration
+
+    visibleDurationSec = clampedNewDuration
+    visibleStartSec = Math.max(0, Math.min(durationSec - clampedNewDuration, newStart))
+
+    notify()
+  }
+
+  /**
+   * Jogs (pans) the visible range along the timeline from a wheel event.
+   * Uses the dominant scroll axis so both a horizontal trackpad swipe (deltaX)
+   * and a vertical wheel (deltaY) move the playhead position forward/backward.
+   * A no-op while fully zoomed out, since the whole timeline is already visible.
+   */
+  function jogByWheel(event: WheelEvent): void {
+    if (durationSec <= 0 || containerWidthPx <= 0) return
+
+    const scrollDeltaPx =
+      Math.abs(event.deltaX) >= Math.abs(event.deltaY) ? event.deltaX : event.deltaY
+    if (scrollDeltaPx === 0) return
+
+    const visDuration = getClampedVisibleDurationSec()
+    if (visDuration >= durationSec) return
+
+    const deltaTimeSec = (scrollDeltaPx / containerWidthPx) * visDuration
+    const newStart = getClampedVisibleStartSec() + deltaTimeSec
+
+    visibleStartSec = Math.max(0, Math.min(durationSec - visDuration, newStart))
+    notify()
+  }
+
   return {
     /**
      * Returns the current zoom state including zoom level, visible range, and timestamps.
@@ -150,41 +211,21 @@ export function createThumbnailZoom(config: ThumbnailZoomConfig): {
     },
 
     /**
-     * Handles wheel events to zoom in/out with mouse-position-aware centering.
-     * Scroll up = zoom in, scroll down = zoom out.
+     * Handles wheel events on the timeline.
+     *
+     * Plain lateral/vertical scroll jogs (pans) the timeline along its length,
+     * matching Eventcut. Zoom is a separate gesture: a pinch (which browsers
+     * deliver as a wheel event with ctrlKey set) or ctrl/cmd + wheel zooms in
+     * and out with mouse-position-aware centering.
      */
     handleWheel(event: WheelEvent): void {
       event.preventDefault()
 
-      hasZoomed = true
-
-      const target = event.currentTarget as HTMLElement
-      const rect = target.getBoundingClientRect()
-      const mouseXPx = event.clientX - rect.left
-
-      const isZoomingIn = event.deltaY < 0
-      const minDur = getMinDurationSec()
-      const maxDur = getMaxDurationSec()
-
-      const effectivePrevDuration =
-        visibleDurationSec <= 0 || visibleDurationSec > maxDur ? maxDur : visibleDurationSec
-      const currentDuration = Math.max(minDur, Math.min(maxDur, effectivePrevDuration))
-      const currentStart = Math.max(0, Math.min(durationSec - currentDuration, visibleStartSec))
-
-      const mouseTimestampSec = mouseXToTimestampSec(mouseXPx, containerWidthPx, currentStart, currentDuration)
-
-      const newDuration = isZoomingIn
-        ? currentDuration * ZOOM_STEP_MULTIPLIER
-        : currentDuration / ZOOM_STEP_MULTIPLIER
-      const clampedNewDuration = Math.max(minDur, Math.min(maxDur, newDuration))
-
-      const mousePercent = containerWidthPx > 0 ? mouseXPx / containerWidthPx : 0.5
-      const newStart = mouseTimestampSec - mousePercent * clampedNewDuration
-
-      visibleDurationSec = clampedNewDuration
-      visibleStartSec = Math.max(0, Math.min(durationSec - clampedNewDuration, newStart))
-
-      notify()
+      if (event.ctrlKey || event.metaKey) {
+        zoomByWheel(event)
+      } else {
+        jogByWheel(event)
+      }
     },
 
     /**
