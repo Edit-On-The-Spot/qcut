@@ -5,7 +5,7 @@
 # Usage: ./deploy.sh
 #
 # Prerequisites:
-#   - AWS CLI configured with 'editonthespot' profile
+#   - AWS CLI configured with 'eos-test' profile (account 881224265465)
 #   - pnpm installed
 #
 # Infrastructure:
@@ -23,7 +23,7 @@ if [ -f .deploy.env ]; then
   set +a
 fi
 
-AWS_PROFILE="${AWS_PROFILE:-editonthespot}"
+AWS_PROFILE="${AWS_PROFILE:-eos-test}"
 S3_BUCKET="${S3_BUCKET:-qcut.app}"
 CLOUDFRONT_DISTRIBUTION_ID="${CLOUDFRONT_DISTRIBUTION_ID:?CLOUDFRONT_DISTRIBUTION_ID env var is required}"
 
