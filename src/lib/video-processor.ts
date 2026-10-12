@@ -1,7 +1,7 @@
 import JSZip from "jszip"
 import type { ActionConfig } from "../types"
 import type { VideoData } from "../types"
-import { getState, getVideoData, ensureVideoBytes, startProcessing, finishProcessing, subscribe } from "../store"
+import { getState, getVideoData, readVideoBytes, startProcessing, finishProcessing, subscribe } from "../store"
 import { createLogger } from "./logger"
 import {
   trackProcessingStart,
@@ -12,6 +12,18 @@ import {
 import { createGifWithGifenc, shouldUseGifenc, type GifProgress } from "./gif-encoder"
 
 const log = createLogger("processor")
+
+/**
+ * Converts a raw failure message into one the user can act on. FFmpeg runs in a
+ * Web Worker, so a transport failure surfaces as raw postMessage or
+ * structured-clone text naming a browser API the user can do nothing about.
+ */
+function toUserFacingMessage(message: string): string {
+  if (message.includes("postMessage") || message.includes("could not be cloned")) {
+    return "The video could not be handed to the processor. Please reload the page and try again."
+  }
+  return message
+}
 
 export interface ProcessorState {
   isProcessing: boolean
@@ -113,9 +125,10 @@ export class VideoProcessor {
 
       await this.processWithFFmpeg(config, videoData, processingStartMs)
     } catch (err) {
-      const errorMessage = (err as Error).message
-      trackProcessingError(config.type, errorMessage)
-      this.setState({ error: `Error processing video: ${errorMessage}` })
+      const rawMessage = (err as Error).message
+      log.error("Processing failed: %s", rawMessage)
+      trackProcessingError(config.type, rawMessage)
+      this.setState({ error: `Error processing video: ${toUserFacingMessage(rawMessage)}` })
     } finally {
       finishProcessing()
       this.setState({ isProcessing: false })
@@ -237,7 +250,7 @@ export class VideoProcessor {
     ffmpeg.on("progress", this.progressHandler)
 
     log.info("Starting processing for: %s", config.type)
-    const uint8Array = await ensureVideoBytes()
+    const uint8Array = await readVideoBytes()
     const inputFileName = "input.mp4"
     await ffmpeg.writeFile(inputFileName, uint8Array)
 

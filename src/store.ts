@@ -13,7 +13,7 @@ let videoData: VideoData | null = null
 
 // In-flight read of the current video's bytes, deduped so the file is read at
 // most once. Reset whenever the video changes (see setVideoData/resetVideo).
-let videoBytesPromise: Promise<Uint8Array> | null = null
+let videoSnapshotPromise: Promise<Blob> | null = null
 
 const state = {
   ffmpeg: null as FFmpeg | null,
@@ -37,49 +37,72 @@ export function getVideoData(): VideoData | null {
 /** Sets the video data. */
 export function setVideoData(data: VideoData | null): void {
   videoData = data
-  videoBytesPromise = null
+  videoSnapshotPromise = null
 }
 
 /**
- * Returns the loaded video's bytes, reading the underlying File at most once and
- * caching the result on videoData.fileData.
+ * Returns an independent Blob snapshot of the loaded video, reading the
+ * underlying File at most once and caching the result on videoData.fileSnapshot.
  *
  * The File reference is only read here, at load time, and never again. Reading a
  * File a second time at processing time can throw a NotReadableError DOMException
  * when the underlying file has moved, been replaced, lost its permission handle,
- * or is being read concurrently — the failure reported in GitHub issue #2. Keeping
- * the bytes in memory after the first successful read avoids that stale re-read.
+ * or is being read concurrently. A Blob built from the first successful read is
+ * backed by the browser's own store, so it reads back as many times as needed and
+ * the browser may spill a large video to disk instead of pinning it in the heap.
  */
-export function ensureVideoBytes(): Promise<Uint8Array> {
+function ensureVideoSnapshot(): Promise<Blob> {
   const current = videoData
   if (!current) {
     return Promise.reject(new Error("No video is loaded yet. Please select a video first."))
   }
-  if (current.fileData) {
-    return Promise.resolve(current.fileData)
+  if (current.fileSnapshot) {
+    return Promise.resolve(current.fileSnapshot)
   }
-  if (videoBytesPromise) {
-    return videoBytesPromise
+  if (videoSnapshotPromise) {
+    return videoSnapshotPromise
   }
 
   const file = current.file
-  videoBytesPromise = file
+  videoSnapshotPromise = file
     .arrayBuffer()
     .then((buffer) => {
-      const bytes = new Uint8Array(buffer)
-      // Cache the bytes only if the same file is still loaded.
+      const snapshot = new Blob([buffer], { type: file.type })
+      // Cache the snapshot only if the same file is still loaded.
       if (videoData && videoData.file === file) {
-        videoData.fileData = bytes
+        videoData.fileSnapshot = snapshot
       }
-      return bytes
+      return snapshot
     })
     .catch((err) => {
       // Allow a later retry to start a fresh read.
-      videoBytesPromise = null
+      videoSnapshotPromise = null
       throw normalizeVideoReadError(err)
     })
 
-  return videoBytesPromise
+  return videoSnapshotPromise
+}
+
+/**
+ * Reads and caches the video snapshot without handing it out, so the read cost is
+ * paid while the user is still choosing settings rather than at export time.
+ */
+export function preloadVideoBytes(): Promise<void> {
+  return ensureVideoSnapshot().then(() => undefined)
+}
+
+/**
+ * Returns the loaded video's bytes as a buffer the caller owns outright.
+ *
+ * ffmpeg.writeFile puts the Uint8Array's backing buffer in its postMessage
+ * transfer list, which detaches that buffer on this thread once the worker takes
+ * it. Reading the snapshot afresh on every call keeps the cache intact, so a
+ * second export or a retry cannot fail with "An ArrayBuffer is detached and could
+ * not be cloned".
+ */
+export async function readVideoBytes(): Promise<Uint8Array> {
+  const snapshot = await ensureVideoSnapshot()
+  return new Uint8Array(await snapshot.arrayBuffer())
 }
 
 /**
