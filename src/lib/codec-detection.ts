@@ -1,4 +1,4 @@
-import { getState, getVideoData, ensureVideoBytes } from "../store"
+import { getState, getVideoData, readVideoBytes } from "../store"
 import { createLogger } from "./logger"
 
 const log = createLogger("codec-detection")
@@ -37,7 +37,7 @@ export async function detectCodecs(): Promise<CodecInfo | null> {
     return null
   }
 
-  const uint8Array = await ensureVideoBytes()
+  const uint8Array = await readVideoBytes()
 
   const inputFileName = "probe_input.mp4"
   await ffmpeg.writeFile(inputFileName, uint8Array)

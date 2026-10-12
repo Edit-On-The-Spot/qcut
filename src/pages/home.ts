@@ -1,5 +1,5 @@
 import type { Component, ActionType } from "../types"
-import { setVideoData, ensureVideoBytes } from "../store"
+import { setVideoData, preloadVideoBytes } from "../store"
 import { navigate, actionTypePath } from "../router"
 import { createLogger } from "../lib/logger"
 import { trackVideoImport, trackVideoImportError, trackFeatureClick } from "../lib/analytics"
@@ -91,9 +91,9 @@ export default function createHomePage(): Component {
       navigate(destination)
       pendingAction = null
 
-      // Pre-read the file bytes in the background so the cut reuses them instead
-      // of re-reading the (possibly stale) File reference later. See issue #2.
-      ensureVideoBytes().catch(() => {})
+      // Snapshot the file bytes in the background so the export reads the snapshot
+      // instead of re-reading the (possibly stale) File reference later.
+      preloadVideoBytes().catch(() => {})
     }
 
     video.onerror = () => {
