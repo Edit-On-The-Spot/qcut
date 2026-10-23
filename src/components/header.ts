@@ -25,7 +25,7 @@ export function createHeader(): Component {
             <img src="/qcut-logo-on-dark.png" alt="Qcut" class="h-9 w-auto" width="80" height="32" />
           </picture>
         </a>
-        <a href="https://www.editonthespot.com/" target="_blank" rel="noopener noreferrer" class="text-[10px] font-medium text-muted-foreground/70 hover:text-foreground transition-colors hidden sm:inline-block pt-1">
+        <a href="https://www.editonthespot.com/" target="_blank" rel="noopener noreferrer" class="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors hidden sm:inline-block pt-1">
           Powered by Edit on the Spot
         </a>
       </div>
