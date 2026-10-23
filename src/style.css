@@ -14,7 +14,7 @@
   --popover-foreground: 0 0% 8%;
 
   /* Qcut brand red accent */
-  --primary: 356 76% 40%;
+  --primary: 357 74% 39%; /* shared brand red #AD1A20 */
   --primary-foreground: 0 0% 100%;
 
   --secondary: 30 20% 96%;
@@ -75,7 +75,7 @@
   --popover-foreground: 0 0% 98%;
 
   /* Qcut brand red accent for dark mode */
-  --primary: 356 76% 50%;
+  --primary: 357 74% 50%; /* shared brand red #AD1A20, lightened for dark mode */
   --primary-foreground: 0 0% 100%;
 
   --secondary: 0 0% 12%;
