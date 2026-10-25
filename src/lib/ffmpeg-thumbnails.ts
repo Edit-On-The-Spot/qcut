@@ -155,7 +155,14 @@ export function createFFmpegThumbnails(
     if (pendingQueue.length === 0) return
 
     isProcessing = true
-    await initPromise
+    try {
+      await initPromise
+    } catch (error) {
+      // A rejected init must not leave isProcessing stuck, or every later request no-ops
+      console.error("Thumbnail worker initialisation failed:", error)
+      isProcessing = false
+      return
+    }
 
     if (workers.length === 0) {
       isProcessing = false
