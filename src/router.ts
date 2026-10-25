@@ -1,4 +1,4 @@
-import type { RouteConfig, Component } from "./types"
+import type { RouteConfig, Component, PageModule } from "./types"
 import { getState, cancelProcessing } from "./store"
 import { trackPageView } from "./lib/analytics"
 import { createLogger } from "./lib/logger"
@@ -154,6 +154,73 @@ const routes: Record<string, RouteConfig> = {
 let currentCleanup: (() => void) | null = null
 let currentPath = ""
 
+// sessionStorage key holding the path whose chunk failure already triggered a reload
+const CHUNK_RELOAD_KEY = "qcut:chunk-reload-path"
+
+const LEAVE_PROCESSING_PROMPT =
+  "Video processing is currently in progress. If you navigate away, the processing will be cancelled and you will lose any progress.\n\nCancel processing and navigate?"
+
+/**
+ * Reloads the page once when a lazy page chunk fails to download. A tab opened
+ * before a deploy, or one that hit a network blip, needs a fresh index.html to
+ * fetch the chunk again. Returns false when this path already had its reload,
+ * so a persistent failure shows the error UI instead of looping.
+ */
+function reloadOnceForChunkError(path: string): boolean {
+  try {
+    if (sessionStorage.getItem(CHUNK_RELOAD_KEY) === path) return false
+    sessionStorage.setItem(CHUNK_RELOAD_KEY, path)
+  } catch {
+    // Without storage there is no loop guard, so do not auto-reload.
+    return false
+  }
+  window.location.reload()
+  return true
+}
+
+/**
+ * Clears the chunk reload guard after a page chunk loads, so a later failure on
+ * the same path gets its own single reload attempt.
+ */
+function clearChunkReloadGuard(): void {
+  try {
+    sessionStorage.removeItem(CHUNK_RELOAD_KEY)
+  } catch {
+    // Storage unavailable: nothing was stored, so nothing to clear.
+  }
+}
+
+/**
+ * Renders a recoverable error in place of a page that failed to load or mount.
+ * The old bare message left users stuck, and keeping currentPath set made a
+ * retry to the same path, including Back, a silent no-op.
+ */
+function renderRouteError(container: HTMLElement): void {
+  currentPath = ""
+  container.innerHTML = `
+    <div class="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center">
+      <p class="text-muted-foreground">Failed to load page.</p>
+      <div class="flex gap-3">
+        <button id="route-reload" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-accent text-accent-foreground hover:bg-accent/90 h-10 px-4 py-2">Reload page</button>
+        <a href="/" data-link class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">Go home</a>
+      </div>
+    </div>
+  `
+  container.querySelector("#route-reload")?.addEventListener("click", () => window.location.reload())
+}
+
+/**
+ * Confirms leaving while processing runs and cancels processing if the user
+ * agrees. Shared by link navigation and browser Back/Forward, since Back used to
+ * skip the guard and leave isProcessing stuck true on the next page.
+ */
+async function confirmLeaveDuringProcessing(): Promise<boolean> {
+  if (!getState().isProcessing) return true
+  if (!window.confirm(LEAVE_PROCESSING_PROMPT)) return false
+  await cancelProcessing()
+  return true
+}
+
 /** Strips trailing slash from path (except root "/"). */
 function normalizePath(path: string): string {
   return path !== "/" && path.endsWith("/") ? path.slice(0, -1) : path
@@ -203,29 +270,41 @@ async function renderRoute(path: string): Promise<void> {
   const container = document.getElementById("page-content")
   if (!container) return
 
-  // Show a brief loading state
+  // Show a loading state so a slow chunk download is not a blank page
+  container.innerHTML = `<div class="flex items-center justify-center min-h-[60vh]"><div class="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div></div>`
+
+  let mod: PageModule
+  try {
+    mod = await route.load()
+  } catch (err) {
+    // A superseding navigation owns the container now; do not overwrite it
+    if (currentPath !== path) return
+    log.error("Failed to load route chunk %s:", path, err)
+    if (reloadOnceForChunkError(path)) return
+    renderRouteError(container)
+    trackPageView(path, route.title)
+    return
+  }
+
+  // Guard: if another navigation happened during async load, abort this render
+  if (currentPath !== path) {
+    log.debug("Navigation superseded: %s → %s, aborting render of %s", previousPath, currentPath, path)
+    return
+  }
+  clearChunkReloadGuard()
   container.innerHTML = ""
 
   try {
-    const mod = await route.load()
-
-    // Guard: if another navigation happened during async load, abort this render
-    if (currentPath !== path) {
-      log.debug("Navigation superseded: %s → %s, aborting render of %s", previousPath, currentPath, path)
-      return
-    }
-
     const page = mod.default()
     container.appendChild(page.element)
     currentCleanup = page.destroy
   } catch (err) {
-    log.error("Failed to load route %s:", path, err)
-    container.innerHTML = `<div class="flex items-center justify-center min-h-[60vh]"><p class="text-muted-foreground">Failed to load page.</p></div>`
-    // Reset currentPath so navigation can be retried
-    currentPath = previousPath
+    log.error("Failed to render route %s:", path, err)
+    renderRouteError(container)
+    return
   }
 
-  // Track page view
+  // Track page view only once the page has actually mounted
   trackPageView(path, route.title)
 }
 
@@ -239,13 +318,7 @@ export async function navigate(path: string, isReplace = false): Promise<void> {
   if (path === currentPath) return
 
   // Navigation guard: confirm before navigating away during processing
-  if (getState().isProcessing) {
-    const shouldLeave = window.confirm(
-      "Video processing is currently in progress. If you navigate away, the processing will be cancelled and you will lose any progress.\n\nCancel processing and navigate?"
-    )
-    if (!shouldLeave) return
-    await cancelProcessing()
-  }
+  if (!(await confirmLeaveDuringProcessing())) return
 
   if (isReplace) {
     history.replaceState(null, "", path)
@@ -269,11 +342,15 @@ export function initRouter(): void {
   })
 
   // Handle browser back/forward
-  window.addEventListener("popstate", () => {
+  window.addEventListener("popstate", async () => {
     const path = normalizePath(window.location.pathname)
-    if (path !== currentPath) {
-      renderRoute(path)
+    if (path === currentPath) return
+    if (!(await confirmLeaveDuringProcessing())) {
+      // The browser already changed the URL; restore the processing page's URL
+      history.pushState(null, "", currentPath)
+      return
     }
+    renderRoute(path)
   })
 
   // Render the initial route
