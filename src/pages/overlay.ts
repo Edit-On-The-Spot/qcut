@@ -5,6 +5,7 @@ import { createBackButton } from "../components/back-button"
 import { createProcessingButton } from "../components/processing-button"
 import { iconSvg } from "../lib/icons"
 import { createVideoUrl } from "../lib/video-url"
+import { watchVideoPlayback, playVideo } from "../lib/video-playback"
 import { formatFileSize } from "../lib/file-utils"
 
 /**
@@ -73,6 +74,7 @@ export default function createOverlayPage(): Component {
     videoEl.src = videoUrl
     videoEl.className = "w-full h-full object-contain"
     videoContainer.appendChild(videoEl)
+    watchVideoPlayback(videoEl, videoContainer)
 
     const overlayDiv = document.createElement("div")
     overlayDiv.className = "absolute pointer-events-none"
@@ -122,7 +124,7 @@ export default function createOverlayPage(): Component {
     })
     playBtn.addEventListener("click", () => {
       if (isPlaying) videoEl.pause()
-      else videoEl.play()
+      else playVideo(videoEl)
     })
 
     // Video box tracking for overlay positioning

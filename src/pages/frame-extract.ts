@@ -4,6 +4,7 @@ import { createVideoUploadPrompt } from "../components/video-upload-prompt"
 import { createBackButton } from "../components/back-button"
 import { createProcessingButton } from "../components/processing-button"
 import { createVideoUrl } from "../lib/video-url"
+import { watchVideoPlayback, playVideo } from "../lib/video-playback"
 import { createVideoFramerate } from "../lib/video-framerate"
 import { snapTimeToFrame, formatTime } from "../lib/time-utils"
 import { iconSvg } from "../lib/icons"
@@ -67,6 +68,7 @@ export default function createFrameExtractPage(): Component {
     video.src = url
     video.className = "w-full h-full object-contain"
     videoWrapper.appendChild(video)
+    watchVideoPlayback(video, videoWrapper)
     content.appendChild(videoWrapper)
 
     // Framerate detection
@@ -92,7 +94,7 @@ export default function createFrameExtractPage(): Component {
       if (isPlaying) {
         video.pause()
       } else {
-        video.play()
+        playVideo(video)
       }
     })
 

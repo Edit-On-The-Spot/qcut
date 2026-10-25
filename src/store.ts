@@ -113,7 +113,7 @@ export async function readVideoBytes(): Promise<Uint8Array> {
 function normalizeVideoReadError(err: unknown): Error {
   if (err instanceof DOMException && err.name === "NotReadableError") {
     return new Error(
-      "The video file could not be read. It may have been moved, renamed, edited, or deleted since you selected it. Please re-select the video and try again."
+      "The video file could not be read. It may have been moved, renamed, edited, or deleted since you selected it, or be too large for your browser's memory. Please re-select the video, or try a smaller file."
     )
   }
   return err instanceof Error ? err : new Error(String(err))
@@ -194,15 +194,13 @@ export function startProcessing(): AbortSignal {
   return controller.signal
 }
 
-/** Cancels processing, terminates FFmpeg, and resets processing state. */
-export async function cancelProcessing(): Promise<void> {
-  log.info("Cancelling processing")
-  const { processingAbortController, ffmpeg } = state
-
-  if (processingAbortController) {
-    processingAbortController.abort()
-  }
-
+/**
+ * Terminates the current FFmpeg worker and loads a fresh one in the background.
+ * Nothing else reloads FFmpeg after app start, so without this a terminated or
+ * crashed instance left Process & Download stuck on "Loading Qcut..." or failing.
+ */
+export function restartFFmpeg(): void {
+  const { ffmpeg } = state
   if (ffmpeg) {
     try {
       ffmpeg.terminate()
@@ -211,15 +209,22 @@ export async function cancelProcessing(): Promise<void> {
       log.warn("Error terminating FFmpeg:", err)
     }
     ffmpegLoadPromise = null
-    log.debug("FFmpeg state reset, will reload on next operation")
+    setState({ ffmpeg: null, isFFmpegLoaded: false })
+  }
+  loadFFmpeg().catch((err) => log.error("FFmpeg reload failed:", err))
+}
+
+/** Cancels processing, restarts FFmpeg, and resets processing state. */
+export async function cancelProcessing(): Promise<void> {
+  log.info("Cancelling processing")
+  const { processingAbortController } = state
+
+  if (processingAbortController) {
+    processingAbortController.abort()
   }
 
-  setState({
-    processingAbortController: null,
-    isProcessing: false,
-    ffmpeg: null,
-    isFFmpegLoaded: false,
-  })
+  restartFFmpeg()
+  setState({ processingAbortController: null, isProcessing: false })
 }
 
 /** Marks processing as complete without terminating FFmpeg. */

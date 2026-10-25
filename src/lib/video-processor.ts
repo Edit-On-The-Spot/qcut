@@ -1,7 +1,7 @@
 import JSZip from "jszip"
 import type { ActionConfig } from "../types"
 import type { VideoData } from "../types"
-import { getState, getVideoData, readVideoBytes, startProcessing, finishProcessing, subscribe } from "../store"
+import { getState, getVideoData, readVideoBytes, startProcessing, finishProcessing, restartFFmpeg, subscribe } from "../store"
 import { createLogger } from "./logger"
 import {
   trackProcessingStart,
@@ -14,15 +14,29 @@ import { createGifWithGifenc, shouldUseGifenc, type GifProgress } from "./gif-en
 const log = createLogger("processor")
 
 /**
- * Converts a raw failure message into one the user can act on. FFmpeg runs in a
- * Web Worker, so a transport failure surfaces as raw postMessage or
- * structured-clone text naming a browser API the user can do nothing about.
+ * Returns the raw text of any thrown value. The FFmpeg worker rejects with a plain
+ * string (it posts e.toString()), so reading `.message` alone yields undefined.
  */
-function toUserFacingMessage(message: string): string {
+function toRawMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
+}
+
+/**
+ * Converts a raw failure into a message the user can act on. FFmpeg runs in a
+ * Web Worker and wasm, so its failures name browser or ffmpeg internals the user
+ * can do nothing about. Only plain Errors thrown by this app's own checks pass through.
+ */
+function toUserFacingMessage(err: unknown): string {
+  const message = toRawMessage(err)
   if (message.includes("postMessage") || message.includes("could not be cloned")) {
     return "The video could not be handed to the processor. Please reload the page and try again."
   }
-  return message
+  if (/out of memory|\bOOM\b|memory access out of bounds|allocation failed/i.test(message)) {
+    return "Your browser ran out of memory processing this video. Close other tabs, then try a shorter clip or a smaller file."
+  }
+  const isAppMessage = err instanceof Error && err.name === "Error" && !/terminate\(\)|ffmpeg\.load\(\)|ffmpeg-core/.test(message)
+  if (isAppMessage) return message
+  return "Something went wrong while processing this video. Please try again, or reload the page if it keeps happening."
 }
 
 export interface ProcessorState {
@@ -94,6 +108,11 @@ export class VideoProcessor {
       this.setState({ error: "No video is loaded yet. Please select a video first." })
       return
     }
+    if (config.type === "gif" && !(Number.parseFloat(String(config.params.end || "3")) > Number.parseFloat(String(config.params.start || "0")))) {
+      // An empty range gives the GIF encoder no frames, which made gifenc throw "reading 'cnt'".
+      this.setState({ error: "Set the GIF end point after its start point, then try again." })
+      return
+    }
     if (!isSingleFrameExtract && !isGifWithGifenc && (!appState.ffmpeg || !appState.isFFmpegLoaded)) {
       this.setState({ error: "FFmpeg is not loaded yet. Please wait." })
       return
@@ -125,10 +144,12 @@ export class VideoProcessor {
 
       await this.processWithFFmpeg(config, videoData, processingStartMs)
     } catch (err) {
-      const rawMessage = (err as Error).message
+      const rawMessage = toRawMessage(err)
       log.error("Processing failed: %s", rawMessage)
       trackProcessingError(config.type, rawMessage)
-      this.setState({ error: `Error processing video: ${toUserFacingMessage(rawMessage)}` })
+      this.setState({ error: `Error processing video: ${toUserFacingMessage(err)}` })
+      // A string rejection comes from inside the FFmpeg worker, whose wasm state may now be broken.
+      if (typeof err === "string") restartFFmpeg()
     } finally {
       finishProcessing()
       this.setState({ isProcessing: false })
@@ -282,15 +303,19 @@ export class VideoProcessor {
     const args = buildFFmpegArgs(config, inputFileName, outputFileName, videoData.duration)
 
     log.info("Running FFmpeg with args: %o", args)
-    await ffmpeg.exec(args)
+    const exitCode = await ffmpeg.exec(args)
+    if (exitCode !== 0) {
+      log.error("FFmpeg exited with code %d", exitCode)
+      throw new Error("This video couldn't be processed with these settings. Its format or codec may not be supported here, so try converting it to an H.264 MP4 first.")
+    }
 
     let url: string
     if (config.type === "frame-extract" && config.params.mode !== "single") {
       const format = String(config.params.format || "png")
       const entries = await ffmpeg.listDir("/")
       const frameFiles = entries
-        .filter((e: { name: string; type?: string }) => e.type === "file")
-        .map((e: { name: string }) => e.name)
+        .filter((e) => !e.isDir)
+        .map((e) => e.name)
         .filter((n: string) => n.startsWith("frame_") && n.endsWith(`.${format}`))
         .sort()
       if (frameFiles.length === 0) throw new Error("No frames were generated.")
