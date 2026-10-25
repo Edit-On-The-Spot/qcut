@@ -301,9 +301,10 @@ async function renderRoute(path: string): Promise<void> {
   } catch (err) {
     log.error("Failed to render route %s:", path, err)
     renderRouteError(container)
+    return
   }
 
-  // Track page view
+  // Track page view only once the page has actually mounted
   trackPageView(path, route.title)
 }
 
