@@ -5,6 +5,7 @@ import { createBackButton } from "../components/back-button"
 import { createProcessingButton } from "../components/processing-button"
 import { iconSvg } from "../lib/icons"
 import { createVideoUrl } from "../lib/video-url"
+import { watchVideoPlayback, playVideo } from "../lib/video-playback"
 import { createVideoFramerate } from "../lib/video-framerate"
 import { snapTimeToFrame, formatTime } from "../lib/time-utils"
 
@@ -107,6 +108,7 @@ export default function createGifPage(): Component {
     videoEl.src = urlResult.url
     videoEl.className = "w-full h-full object-contain"
     videoWrapper.appendChild(videoEl)
+    watchVideoPlayback(videoEl, videoWrapper)
     content.appendChild(videoWrapper)
 
     // Controls: play/pause, mark start, mark end
@@ -213,7 +215,7 @@ export default function createGifPage(): Component {
 
     playBtn.addEventListener("click", () => {
       if (isPlaying) videoEl.pause()
-      else videoEl.play()
+      else playVideo(videoEl)
     })
 
     markStartBtn.addEventListener("click", () => {

@@ -1,5 +1,6 @@
 import type { Component } from "../types"
 import { iconSvg } from "../lib/icons"
+import { watchVideoPlayback, playVideo } from "../lib/video-playback"
 
 interface VideoPreviewOptions {
   src: string
@@ -31,6 +32,7 @@ export function createVideoPreview(options: VideoPreviewOptions): Component & {
   video.className = "w-full h-full object-contain"
   video.playsInline = true
   videoWrapper.appendChild(video)
+  watchVideoPlayback(video, videoWrapper)
   container.appendChild(videoWrapper)
 
   let isPlaying = false
@@ -71,7 +73,7 @@ export function createVideoPreview(options: VideoPreviewOptions): Component & {
 
   const togglePlay = () => {
     if (isPlaying) video.pause()
-    else video.play()
+    else playVideo(video)
   }
 
   controlBtn?.addEventListener("click", togglePlay)
@@ -80,7 +82,7 @@ export function createVideoPreview(options: VideoPreviewOptions): Component & {
     element: container,
     video,
     seekTo: (t: number) => { video.currentTime = t },
-    play: () => video.play(),
+    play: () => playVideo(video),
     pause: () => video.pause(),
     togglePlay,
     destroy: () => {

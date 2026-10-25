@@ -5,6 +5,7 @@ import { createBackButton } from "../components/back-button"
 import { createProcessingButton } from "../components/processing-button"
 import { iconSvg } from "../lib/icons"
 import { createVideoUrl } from "../lib/video-url"
+import { watchVideoPlayback, playVideo } from "../lib/video-playback"
 import { createVideoFramerate } from "../lib/video-framerate"
 import { createFFmpegThumbnails } from "../lib/ffmpeg-thumbnails"
 import { createThumbnailZoom } from "../lib/thumbnail-zoom"
@@ -127,6 +128,7 @@ export default function createTrimPage(): Component {
     videoEl.className = "w-full h-full object-contain"
     videoEl.playsInline = true
     videoWrapper.appendChild(videoEl)
+    watchVideoPlayback(videoEl, videoWrapper)
     content.appendChild(videoWrapper)
 
     // Controls row
@@ -247,7 +249,7 @@ export default function createTrimPage(): Component {
 
     playBtn.addEventListener("click", () => {
       if (isPlaying) videoEl!.pause()
-      else videoEl!.play()
+      else playVideo(videoEl!)
     })
 
     muteBtn.addEventListener("click", () => {

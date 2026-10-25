@@ -68,13 +68,25 @@ export function createFeatureRequestButton(): Component {
     dialog.showModal()
   })
 
+  /** Shows a success or failure line in the dialog; the class reset also clears the initial "hidden". */
+  function showStatus(text: string, isSuccess: boolean): void {
+    statusDiv.textContent = text
+    statusDiv.className = isSuccess
+      ? "p-3 rounded-md text-sm bg-green-50 text-green-800 border border-green-200"
+      : "p-3 rounded-md text-sm bg-red-50 text-red-800 border border-red-200"
+  }
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault()
     const formData = new FormData(form)
     const email = (formData.get("email") as string).trim()
     const message = (formData.get("message") as string).trim()
 
-    if (!email || !message || message.length < 10) return
+    if (!email || !message || message.length < 10) {
+      // Spaces count toward the textarea's minlength, so explain instead of silently ignoring the click.
+      showStatus("Please enter your email and at least 10 characters describing the feature.", false)
+      return
+    }
 
     submitBtn.disabled = true
     submitBtn.textContent = "Sending..."
@@ -93,14 +105,19 @@ export function createFeatureRequestButton(): Component {
         }),
       })
 
-      if (!response.ok) throw new Error("Failed to send feature request")
+      if (response.status === 400) {
+        // The API's 400 messages (e.g. "Invalid email format") tell the user what to fix.
+        const body = (await response.json().catch(() => null)) as { error?: string } | null
+        console.error("Feature request rejected:", body)
+        showStatus(body?.error ? `${body.error}. Please check and try again.` : "Failed to send feature request. Please check your details and try again.", false)
+        return
+      }
+      if (!response.ok) throw new Error(`Feature request API returned HTTP ${response.status}`)
 
-      statusDiv.textContent = "Thank you for your suggestion! We'll review it soon."
-      statusDiv.className = "p-3 rounded-md text-sm bg-green-50 text-green-800 border border-green-200"
+      showStatus("Thank you for your suggestion! We'll review it soon.", true)
       form.reset()
     } catch (error) {
-      statusDiv.textContent = "Failed to send feature request. Please try again later."
-      statusDiv.className = "p-3 rounded-md text-sm bg-red-50 text-red-800 border border-red-200"
+      showStatus("Failed to send feature request. Please try again later.", false)
       console.error("Feature request error:", error)
     } finally {
       submitBtn.disabled = false

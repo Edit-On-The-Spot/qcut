@@ -167,7 +167,7 @@ Replace `YOUR_ACCOUNT_ID` with your actual AWS account ID.
 Add the API Gateway URL to your frontend `.env.local` file:
 
 ```bash
-NEXT_PUBLIC_CONTACT_API_URL=https://your-api-id.execute-api.us-east-1.amazonaws.com/prod/contact
+VITE_CONTACT_API_URL=https://your-api-id.execute-api.us-east-1.amazonaws.com/prod/contact
 ```
 
 ## Updating the Function

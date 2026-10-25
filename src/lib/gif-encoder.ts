@@ -59,6 +59,11 @@ export async function createGifWithGifenc(
       }, { once: true })
     })
 
+    // A 0x0 track means the browser cannot decode the picture, so there is nothing to draw.
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      throw new Error("Your browser can't decode this video's picture, so a GIF can't be made from it. Convert it to an H.264 MP4 and try again.")
+    }
+
     // Calculate dimensions maintaining aspect ratio
     const aspectRatio = video.videoHeight / video.videoWidth
     const height = Math.round(width * aspectRatio)
@@ -109,13 +114,13 @@ export async function createGifWithGifenc(
     const samplePixels: number[] = []
     for (let i = 0; i < frames.length; i += sampleInterval) {
       const data = frames[i].data
-      // Sample every 4th pixel to reduce memory usage
+      // Sample every 4th pixel to reduce memory usage. quantize() reads RGBA, so keep all 4 bytes.
       for (let j = 0; j < data.length; j += 16) {
-        samplePixels.push(data[j], data[j + 1], data[j + 2])
+        samplePixels.push(data[j], data[j + 1], data[j + 2], data[j + 3])
       }
     }
 
-    log.debug("Calculating global palette from %d sample pixels", samplePixels.length / 3)
+    log.debug("Calculating global palette from %d sample pixels", samplePixels.length / 4)
     const globalPalette = quantize(new Uint8Array(samplePixels), 256)
 
     // Encode frames

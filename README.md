@@ -39,7 +39,7 @@ The application includes a contact form at `/contact` that sends emails to `supp
 2. Create an API Gateway endpoint pointing to the Lambda function
 3. Create a `.env.local` file with the API Gateway URL:
    ```
-   NEXT_PUBLIC_CONTACT_API_URL=https://your-api-id.execute-api.us-east-1.amazonaws.com/prod/contact
+   VITE_CONTACT_API_URL=https://your-api-id.execute-api.us-east-1.amazonaws.com/prod/contact
    ```
 
 For full deployment instructions, see `lambda/contact-form/README.md`.

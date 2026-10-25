@@ -3,6 +3,7 @@ import { setVideoData, preloadVideoBytes } from "../store"
 import { getFileSizeWarningType } from "../lib/file-utils"
 import { createFileSizeWarning } from "./file-size-warning"
 import { createLogger } from "../lib/logger"
+import { UNSUPPORTED_VIDEO_MESSAGE, describeMediaError } from "../lib/video-playback"
 import { iconSvg } from "../lib/icons"
 
 const log = createLogger("video-upload-prompt")
@@ -77,7 +78,8 @@ export function createVideoUploadPrompt(onVideoLoaded: () => void): Component {
 
     video.onerror = () => {
       URL.revokeObjectURL(objectUrl)
-      errorDiv.textContent = "Unable to load video. The file may be corrupted or in an unsupported format."
+      log.error("Failed to load video metadata for: %s (%s, %s)", file.name, file.type || "no MIME type", describeMediaError(video))
+      errorDiv.textContent = UNSUPPORTED_VIDEO_MESSAGE
       errorDiv.classList.remove("hidden")
     }
 

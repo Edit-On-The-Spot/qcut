@@ -2,6 +2,7 @@ import type { Component, ActionType } from "../types"
 import { setVideoData, preloadVideoBytes } from "../store"
 import { navigate, actionTypePath } from "../router"
 import { createLogger } from "../lib/logger"
+import { UNSUPPORTED_VIDEO_MESSAGE, describeMediaError } from "../lib/video-playback"
 import { trackVideoImport, trackVideoImportError, trackFeatureClick } from "../lib/analytics"
 import { getFileSizeWarningType } from "../lib/file-utils"
 import { createHero } from "../components/landing/hero"
@@ -98,10 +99,9 @@ export default function createHomePage(): Component {
 
     video.onerror = () => {
       URL.revokeObjectURL(objectUrl)
-      log.error("Failed to load video metadata for: %s", file.name)
-      const errorMsg = "Unable to load video. The file may be corrupted or in an unsupported format."
-      trackVideoImportError(errorMsg)
-      showErrorToast(errorMsg)
+      log.error("Failed to load video metadata for: %s (%s, %s)", file.name, file.type || "no MIME type", describeMediaError(video))
+      trackVideoImportError(UNSUPPORTED_VIDEO_MESSAGE)
+      showErrorToast(UNSUPPORTED_VIDEO_MESSAGE)
     }
 
     video.src = objectUrl
