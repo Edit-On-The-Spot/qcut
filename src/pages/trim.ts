@@ -172,10 +172,10 @@ export default function createTrimPage(): Component {
         <div id="trim-scrub-viewport" class="absolute top-0 h-full bg-blue-500/20 border border-blue-500 rounded-full pointer-events-none" style="display:none"></div>
         <div id="trim-scrub-selection" class="absolute top-0 h-full border-2 border-dashed border-yellow-400 opacity-50 rounded-full" style="left:0%;width:100%"></div>
         <div id="trim-scrub-playhead" class="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-accent rounded-full shadow-lg transition-all z-10" style="left:0%;margin-left:-0.5rem"></div>
-        <div id="trim-scrub-start-marker" class="absolute top-1/2 -translate-y-1/2 w-4 h-6 bg-green-500 border-2 border-white rounded shadow-lg cursor-ew-resize hover:scale-110 transition-transform z-20" style="left:0%;margin-left:-0.5rem">
+        <div id="trim-scrub-start-marker" class="absolute top-1/2 -translate-y-1/2 w-4 h-6 bg-green-500 border-2 border-white rounded shadow-lg cursor-ew-resize touch-none hover:scale-110 transition-transform z-20" style="left:0%;margin-left:-0.5rem">
           <div class="absolute inset-0 flex items-center justify-center text-[8px] text-white font-bold">S</div>
         </div>
-        <div id="trim-scrub-end-marker" class="absolute top-1/2 -translate-y-1/2 w-4 h-6 bg-red-500 border-2 border-white rounded shadow-lg cursor-ew-resize hover:scale-110 transition-transform z-20" style="left:100%;margin-left:-0.5rem">
+        <div id="trim-scrub-end-marker" class="absolute top-1/2 -translate-y-1/2 w-4 h-6 bg-red-500 border-2 border-white rounded shadow-lg cursor-ew-resize touch-none hover:scale-110 transition-transform z-20" style="left:100%;margin-left:-0.5rem">
           <div class="absolute inset-0 flex items-center justify-center text-[8px] text-white font-bold">E</div>
         </div>
       </div>
@@ -260,6 +260,8 @@ export default function createTrimPage(): Component {
 
     markStartBtn.addEventListener("click", () => {
       startTimeSec = snapTime(currentTimeSec)
+      // A start past the end would invert the range, so release the end to the video end
+      if (startTimeSec > endTimeSec) endTimeSec = durationSec
       updateScrubberTimeline()
       updateThumbnailStrip()
       updateSelectionInfo()
@@ -269,6 +271,8 @@ export default function createTrimPage(): Component {
 
     markEndBtn.addEventListener("click", () => {
       endTimeSec = snapTime(currentTimeSec)
+      // An end before the start would invert the range, so release the start to 0
+      if (endTimeSec < startTimeSec) startTimeSec = 0
       updateScrubberTimeline()
       updateThumbnailStrip()
       updateSelectionInfo()
@@ -431,19 +435,13 @@ export default function createTrimPage(): Component {
 
     if (!videoEl) return
 
-    const zState = zoomHandle ? zoomHandle.getState() : null
-    const visibleEnd = zState
-      ? zState.visibleStartSec + zState.visibleDurationSec
-      : durationSec
-
     scrubberMarkerDrag = createMarkerDrag({
       videoEl,
       framerate: getFramerate(),
       duration: durationSec,
       getStartTime: () => startTimeSec,
       getEndTime: () => endTimeSec,
-      visibleStart: 0,
-      visibleEnd: durationSec,
+      getVisibleRange: () => ({ startSec: 0, endSec: durationSec }),
       containerWidth: containerWidthPx,
       onStartChange: (time) => {
         startTimeSec = time
@@ -474,8 +472,11 @@ export default function createTrimPage(): Component {
       duration: durationSec,
       getStartTime: () => startTimeSec,
       getEndTime: () => endTimeSec,
-      visibleStart: zState ? zState.visibleStartSec : 0,
-      visibleEnd,
+      getVisibleRange: () => {
+        if (!zoomHandle) return { startSec: 0, endSec: durationSec }
+        const zState = zoomHandle.getState()
+        return { startSec: zState.visibleStartSec, endSec: zState.visibleStartSec + zState.visibleDurationSec }
+      },
       containerWidth: containerWidthPx,
       onStartChange: (time) => {
         startTimeSec = time
@@ -572,10 +573,10 @@ export default function createTrimPage(): Component {
     const scrubStart = container.querySelector("#trim-scrub-start-marker") as HTMLElement
     const scrubEnd = container.querySelector("#trim-scrub-end-marker") as HTMLElement
     if (scrubStart) {
-      scrubStart.className = `absolute top-1/2 -translate-y-1/2 w-4 h-6 bg-green-500 border-2 border-white rounded shadow-lg cursor-ew-resize hover:scale-110 transition-transform z-20 ${isDragging && draggingMarkerType === "start" ? "scale-125" : ""}`
+      scrubStart.className = `absolute top-1/2 -translate-y-1/2 w-4 h-6 bg-green-500 border-2 border-white rounded shadow-lg cursor-ew-resize touch-none hover:scale-110 transition-transform z-20 ${isDragging && draggingMarkerType === "start" ? "scale-125" : ""}`
     }
     if (scrubEnd) {
-      scrubEnd.className = `absolute top-1/2 -translate-y-1/2 w-4 h-6 bg-red-500 border-2 border-white rounded shadow-lg cursor-ew-resize hover:scale-110 transition-transform z-20 ${isDragging && draggingMarkerType === "end" ? "scale-125" : ""}`
+      scrubEnd.className = `absolute top-1/2 -translate-y-1/2 w-4 h-6 bg-red-500 border-2 border-white rounded shadow-lg cursor-ew-resize touch-none hover:scale-110 transition-transform z-20 ${isDragging && draggingMarkerType === "end" ? "scale-125" : ""}`
     }
   }
 
@@ -664,7 +665,7 @@ export default function createTrimPage(): Component {
     if (durationSec > 0 && startTimeSec >= zState.visibleStartSec && startTimeSec <= visEnd) {
       const marker = document.createElement("div")
       marker.setAttribute("data-thumb-marker", "start")
-      marker.className = `absolute top-0 w-4 h-24 bg-green-500 border-2 border-white shadow-lg cursor-ew-resize hover:scale-110 transition-transform z-30 ${isDragging && draggingMarkerType === "start" ? "scale-125" : ""}`
+      marker.className = `absolute top-0 w-4 h-24 bg-green-500 border-2 border-white shadow-lg cursor-ew-resize touch-none hover:scale-110 transition-transform z-30 ${isDragging && draggingMarkerType === "start" ? "scale-125" : ""}`
       marker.style.left = `${((startTimeSec - zState.visibleStartSec) / visDuration) * 100}%`
       marker.style.marginLeft = "-0.5rem"
       marker.title = `Start: ${formatTime(startTimeSec)}`
@@ -679,7 +680,7 @@ export default function createTrimPage(): Component {
     if (durationSec > 0 && endTimeSec >= zState.visibleStartSec && endTimeSec <= visEnd) {
       const marker = document.createElement("div")
       marker.setAttribute("data-thumb-marker", "end")
-      marker.className = `absolute top-0 w-4 h-24 bg-red-500 border-2 border-white shadow-lg cursor-ew-resize hover:scale-110 transition-transform z-30 ${isDragging && draggingMarkerType === "end" ? "scale-125" : ""}`
+      marker.className = `absolute top-0 w-4 h-24 bg-red-500 border-2 border-white shadow-lg cursor-ew-resize touch-none hover:scale-110 transition-transform z-30 ${isDragging && draggingMarkerType === "end" ? "scale-125" : ""}`
       marker.style.left = `${((endTimeSec - zState.visibleStartSec) / visDuration) * 100}%`
       marker.style.marginLeft = "-0.5rem"
       marker.title = `End: ${formatTime(endTimeSec)}`

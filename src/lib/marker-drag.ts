@@ -11,10 +11,8 @@ export interface MarkerDragOptions {
   getStartTime: () => number
   /** Returns the current end time in seconds. */
   getEndTime: () => number
-  /** Start of the visible time range in seconds. */
-  visibleStart: number
-  /** End of the visible time range in seconds. */
-  visibleEnd: number
+  /** Returns the visible time range in seconds, read on every move so zoom and pan changes apply. */
+  getVisibleRange: () => { startSec: number; endSec: number }
   /** Width of the drag container in pixels. */
   containerWidth: number
   /** Called when start time changes (time, frame). */
@@ -60,6 +58,7 @@ export function createMarkerDrag(options: MarkerDragOptions): {
     }
     if (activeUpHandler) {
       document.removeEventListener("pointerup", activeUpHandler)
+      document.removeEventListener("pointercancel", activeUpHandler)
       activeUpHandler = null
     }
   }
@@ -83,11 +82,12 @@ export function createMarkerDrag(options: MarkerDragOptions): {
     const handlePointerMove = (moveEvent: PointerEvent): void => {
       const rect = parentElement.getBoundingClientRect()
       const pointerX = moveEvent.clientX - rect.left
+      const { startSec, endSec } = options.getVisibleRange()
       const newTime = calculateTimeFromMousePosition(
         pointerX,
         options.containerWidth,
-        options.visibleStart,
-        options.visibleEnd
+        startSec,
+        endSec
       )
       const snappedTime = snapTimeToFrame(newTime, options.framerate, options.duration)
       const frame = timeToFrame(snappedTime, options.framerate)
@@ -113,6 +113,7 @@ export function createMarkerDrag(options: MarkerDragOptions): {
     activeUpHandler = handlePointerUp
     document.addEventListener("pointermove", handlePointerMove)
     document.addEventListener("pointerup", handlePointerUp)
+    document.addEventListener("pointercancel", handlePointerUp)
   }
 
   /**
@@ -134,11 +135,12 @@ export function createMarkerDrag(options: MarkerDragOptions): {
     const handlePointerMove = (moveEvent: PointerEvent): void => {
       const rect = parentElement.getBoundingClientRect()
       const pointerX = moveEvent.clientX - rect.left
+      const { startSec, endSec } = options.getVisibleRange()
       const newTime = calculateTimeFromMousePosition(
         pointerX,
         options.containerWidth,
-        options.visibleStart,
-        options.visibleEnd
+        startSec,
+        endSec
       )
       const snappedTime = snapTimeToFrame(newTime, options.framerate, options.duration)
       const frame = timeToFrame(snappedTime, options.framerate)
@@ -164,6 +166,7 @@ export function createMarkerDrag(options: MarkerDragOptions): {
     activeUpHandler = handlePointerUp
     document.addEventListener("pointermove", handlePointerMove)
     document.addEventListener("pointerup", handlePointerUp)
+    document.addEventListener("pointercancel", handlePointerUp)
   }
 
   return {
