@@ -4,6 +4,7 @@ import { getState, setState } from "../store"
 const THUMBNAIL_WIDTH_PX = 160
 const THUMBNAIL_HEIGHT_PX = 90
 const PARALLEL_WORKERS = 4
+const WORKER_LOAD_TIMEOUT_MS = 10000
 
 /**
  * Generates a cache key for a thumbnail based on video name and timestamp.
@@ -26,25 +27,43 @@ interface ThumbnailWorker {
 
 /**
  * Creates a thumbnail worker with a hidden video element and canvas.
+ * Rejects after WORKER_LOAD_TIMEOUT_MS so a video that never fires
+ * loadedmetadata or error cannot leave the filmstrip spinning forever.
  * @param videoUrl - URL of the video to load
  * @returns Promise resolving to the worker
  */
 async function createWorker(videoUrl: string): Promise<ThumbnailWorker> {
   const video = document.createElement("video")
-  video.src = videoUrl
   video.muted = true
-  video.preload = "auto"
+  // Metadata is enough to seek; "auto" made every worker buffer the whole file alongside the player
+  video.preload = "metadata"
   video.playsInline = true
+  video.src = videoUrl
 
   const canvas = document.createElement("canvas")
   canvas.width = THUMBNAIL_WIDTH_PX
   canvas.height = THUMBNAIL_HEIGHT_PX
   const ctx = canvas.getContext("2d")!
 
-  await new Promise<void>((resolve, reject) => {
-    video.onloadedmetadata = () => resolve()
-    video.onerror = () => reject(new Error("Failed to load video for thumbnail worker"))
-  })
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const timeoutId = setTimeout(
+        () => reject(new Error(`Thumbnail worker video did not load within ${WORKER_LOAD_TIMEOUT_MS} ms`)),
+        WORKER_LOAD_TIMEOUT_MS
+      )
+      video.onloadedmetadata = () => {
+        clearTimeout(timeoutId)
+        resolve()
+      }
+      video.onerror = () => {
+        clearTimeout(timeoutId)
+        reject(new Error("Failed to load video for thumbnail worker"))
+      }
+    })
+  } catch (error) {
+    video.src = ""
+    throw error
+  }
 
   return { video, canvas, ctx, isBusy: false }
 }
@@ -78,45 +97,72 @@ async function generateThumbnail(worker: ThumbnailWorker, timestampSec: number):
  * Creates an FFmpeg thumbnail generator for a video.
  * Uses parallel hidden video elements + canvas to generate thumbnails.
  * Caches thumbnails by video name + timestamp in the global store.
+ * Requests made before the workers load are queued and run once they are ready.
  * @param videoData - The video data to generate thumbnails from
+ * @param onUnavailable - Called once if no worker can load the video, so the caller can stop showing spinners
  * @returns Object with methods to request, cancel, get thumbnails and cleanup
  */
-export function createFFmpegThumbnails(videoData: VideoData): {
+export function createFFmpegThumbnails(
+  videoData: VideoData,
+  onUnavailable: () => void
+): {
   requestThumbnails: (timestampsSec: number[]) => void
   cancelPending: () => void
   getThumbnails: (timestampsSec: number[]) => Map<number, string>
-  isReady: boolean
+  isUnavailable: boolean
   destroy: () => void
 } {
   let workers: ThumbnailWorker[] = []
   let videoUrl: string | null = null
-  let isReady = false
+  let isUnavailable = false
+  let isDestroyed = false
   let isProcessing = false
   const pendingQueue: number[] = []
 
   videoUrl = URL.createObjectURL(videoData.file)
 
   const initPromise = (async () => {
-    if (!videoUrl) return
-    for (let i = 0; i < PARALLEL_WORKERS; i++) {
-      try {
-        const worker = await createWorker(videoUrl)
-        workers.push(worker)
-      } catch (error) {
-        console.error(`Failed to create thumbnail worker ${i}:`, error)
+    const url = videoUrl!
+    const results = await Promise.allSettled(Array.from({ length: PARALLEL_WORKERS }, () => createWorker(url)))
+    const loaded: ThumbnailWorker[] = []
+    results.forEach((result, i) => {
+      if (result.status === "fulfilled") {
+        loaded.push(result.value)
+      } else {
+        console.error(`Failed to create thumbnail worker ${i}:`, result.reason)
       }
+    })
+    if (isDestroyed) {
+      loaded.forEach((w) => {
+        w.video.src = ""
+      })
+      return
     }
-    isReady = workers.length > 0
+    workers = loaded
+    if (workers.length === 0) {
+      isUnavailable = true
+      pendingQueue.length = 0
+      onUnavailable()
+    }
   })()
 
   /**
    * Processes pending thumbnail requests using available workers in batches.
+   * Waits for worker initialisation first, so early requests are not dropped.
    */
   async function processQueue(): Promise<void> {
     if (isProcessing) return
     if (pendingQueue.length === 0) return
 
     isProcessing = true
+    try {
+      await initPromise
+    } catch (error) {
+      // A rejected init must not leave isProcessing stuck, or every later request no-ops
+      console.error("Thumbnail worker initialisation failed:", error)
+      isProcessing = false
+      return
+    }
 
     if (workers.length === 0) {
       isProcessing = false
@@ -165,8 +211,8 @@ export function createFFmpegThumbnails(videoData: VideoData): {
   }
 
   return {
-    get isReady() {
-      return isReady
+    get isUnavailable() {
+      return isUnavailable
     },
 
     /**
@@ -175,6 +221,7 @@ export function createFFmpegThumbnails(videoData: VideoData): {
      * @param timestampsSec - Array of timestamps in seconds
      */
     requestThumbnails(timestampsSec: number[]): void {
+      if (isUnavailable || isDestroyed) return
       const cache = getState().thumbnailCache
       const uncached = timestampsSec.filter((ts) => {
         const key = getCacheKey(videoData.file.name, ts)
@@ -224,12 +271,12 @@ export function createFFmpegThumbnails(videoData: VideoData): {
      * Cleans up workers and revokes the video URL.
      */
     destroy(): void {
+      isDestroyed = true
       pendingQueue.length = 0
       workers.forEach((w) => {
         w.video.src = ""
       })
       workers = []
-      isReady = false
       if (videoUrl) {
         URL.revokeObjectURL(videoUrl)
         videoUrl = null

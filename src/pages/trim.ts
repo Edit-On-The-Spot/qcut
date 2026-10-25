@@ -216,7 +216,7 @@ export default function createTrimPage(): Component {
     framerateHandle = createVideoFramerate(videoEl)
 
     // Set up thumbnails
-    thumbnailsHandle = createFFmpegThumbnails(videoData)
+    thumbnailsHandle = createFFmpegThumbnails(videoData, () => updateThumbnailStrip())
 
     // Video events
     videoEl.addEventListener("loadedmetadata", () => {
@@ -516,7 +516,7 @@ export default function createTrimPage(): Component {
   function requestVisibleThumbnails(): void {
     if (!thumbnailsHandle || !zoomHandle) return
     const zState = zoomHandle.getState()
-    if (thumbnailsHandle.isReady && zState.timestamps.length > 0) {
+    if (zState.timestamps.length > 0) {
       thumbnailsHandle.requestThumbnails(zState.timestamps)
     }
   }
@@ -588,7 +588,7 @@ export default function createTrimPage(): Component {
     const thumbnailMap = thumbnailsHandle.getThumbnails(zState.timestamps)
 
     // Request thumbnails for any that are not yet cached
-    if (thumbnailsHandle.isReady && zState.timestamps.length > 0) {
+    if (zState.timestamps.length > 0) {
       thumbnailsHandle.requestThumbnails(zState.timestamps)
     }
 
@@ -604,9 +604,13 @@ export default function createTrimPage(): Component {
       thumbDiv.className = "relative flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
 
       if (!thumb) {
+        // A spinner would never resolve once no worker can decode the video
+        const placeholderIcon = thumbnailsHandle.isUnavailable
+          ? iconSvg("Film", 24, "w-6 h-6 text-muted-foreground")
+          : iconSvg("Loader2", 24, "w-6 h-6 animate-spin text-muted-foreground")
         thumbDiv.innerHTML = `
           <div class="w-40 h-24 bg-secondary rounded border-2 border-border flex items-center justify-center">
-            ${iconSvg("Loader2", 24, "w-6 h-6 animate-spin text-muted-foreground")}
+            ${placeholderIcon}
           </div>
           <span class="absolute bottom-1 left-1 px-1 py-0.5 text-xs bg-black/70 text-white rounded">${formatTimeWithCentiseconds(timestamp)}</span>
         `
