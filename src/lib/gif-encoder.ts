@@ -121,6 +121,10 @@ export async function createGifWithGifenc(
     }
 
     log.debug("Calculating global palette from %d sample pixels", samplePixels.length / 4)
+    // quantize() throws "reading 'cnt'" on empty input, so fail with a clear message instead
+    if (samplePixels.length === 0) {
+      throw new Error("No frames were sampled for the GIF. Check that the end point is after the start point.")
+    }
     const globalPalette = quantize(new Uint8Array(samplePixels), 256)
 
     // Encode frames
